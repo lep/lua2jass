@@ -119,6 +119,68 @@ class Interpreter:
     def step(self):
         ctx = self.stack[-1]
         ins = self.instructions[ ctx.ip ]
+        print("executing", ins)
+        if ins[0] == "fun":
+            print(ctx)
+            pass
+        elif ins[0] == "getlit":
+            ctx.tmps[ins[1]] = ctx.get(ins[2])
+        elif ins[0] == "add":
+            ctx.tmps[ins[1]] = ctx.tmps[ins[2]] + ctx.tmps[ins[3]]
+        elif ins[0] == "sub":
+            ctx.tmps[ins[1]] = ctx.tmps[ins[2]] - ctx.tmps[ins[3]]
+        elif ins[0] == "mul":
+            ctx.tmps[ins[1]] = ctx.tmps[ins[2]] * ctx.tmps[ins[3]]
+        elif ins[0] == "ret":
+            self.stack.pop()
+            parent_ctx = self.stack[-1]
+            parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
+            print("ret parent ins", parent_instruction)
+            print("ret return value", ctx.tmps[0])
+            parent_ctx.tmps[ parent_instruction[1] ] = ctx.tmps[0]
+        elif ins[0] == "lambda":
+            new_ctx = self.call(ins[2])
+            new_ctx.parent = ctx
+            ctx.tmps[ ins[1] ] = new_ctx
+        elif ins[0] == "setlit":
+            ctx.set(ins[1], ctx.tmps[ins[2]])
+        elif ins[0] == "lit":
+            ctx.tmps[ins[1]] = ins[2]
+        elif ins[0] == "bindlit":
+            ctx.params[ ins[1] ] = ctx.tmps[ins[2]]
+        elif ins[0] == "calllit":
+            if ins[2] == "print":
+                print("print", ctx.params['a'])
+                ctx.params = {}
+            else:
+                new_ctx = ctx.get( ins[2] ).clone()
+                new_ctx.locals = ctx.params
+                new_ctx.parent_call = ctx
+                ctx.params = {}
+                self.stack.append(new_ctx)
+        elif ins[0] == "call":
+            new_ctx = ctx.tmps[ins[2]].clone()
+            new_ctx.locals = ctx.params
+            new_ctx.parent_call = ctx
+            ctx.params = {}
+            self.stack.append(new_ctx)
+        elif ins[0] == "lbl":
+            pass
+        elif ins[0] == "eq":
+            ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] == ctx.tmps[ ins[3] ]
+        elif ins[0] == "jmpt":
+            v = ctx.tmps[ ins[2] ]
+            if v:
+                ctx.ip = self.labels[ ins[1] ]
+                #return ctx
+        elif ins[0] == "jmp":
+            ctx.ip = self.labels[ ins[1] ]
+            
+        else:
+            raise Exception("Unknown instruction", ins)
+
+        ctx.ip += 1
+        #return self
     
     def call(self, label):
         idx = self.labels[label]
@@ -134,7 +196,7 @@ prog_fac = [
     ("sub", -5, -1, -3),
     ("bindlit", "n", -5),
     ("calllit", -6, "fac"),
-    ("mul", 0, -6, -5),
+    ("mul", 0, -6, -1),
     ("jmp", "ret_2"),
     ("lbl", "ret_1"),
     ("lit", 0, 1),
@@ -144,14 +206,14 @@ prog_fac = [
     ("fun", "$_main"),
     ("lambda", -1337, "$_fac"),
     ("setlit", "fac", -1337),
-    ("lit", -1, 1),
+    ("lit", -1, 6),
     ("bindlit", 'n', -1),
     ("calllit", -2, "fac"),
     ("bindlit", "a", -2),
     ("calllit", -3, "print"),
 ]
 
-prog = [
+prog_closure = [
     ("fun", "$_lambda_addto_1"),
     ("getlit", -1, "x"),
     ("getlit", -2, "y"),
@@ -178,9 +240,21 @@ prog = [
     ("calllit", -6, "fourplus"),
     ("bindlit", "a", -6),
     ("calllit", -7,  "print"),
+
+    ("lit", -5, 123),
+    ("bindlit", "y", -5),
+    ("calllit", -6, "fourplus"),
+    ("bindlit", "a", -6),
+    ("calllit", -7,  "print"),
 ]
 
 i = Interpreter(prog_fac)
+i.stack.append(i.call("$_main"))
+for x in range(89):
+    print(x, end=': ')
+    i.step()
+
+exit(0)
 ctx = i.call("$_main")
 while True:
     ctx = ctx.step()
