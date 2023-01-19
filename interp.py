@@ -21,7 +21,7 @@ class Context:
         return ctx
 
     def __str__(self):
-        return "{}".format(("Context<", "instruction:", self.interpreter.instructions[self.ip], "locals:", self.locals, "params:", self.params, "tmps:", self.tmps, "parent:", self.parent, ">"))
+        return "{}".format(("Context<", "locals:", self.locals, "params:", self.params, "tmps:", self.tmps, "parent:", self.parent, ">"))
 
     def get(self, name):
         if name in self.locals:
@@ -72,13 +72,13 @@ class Context:
             else:
                 ctx = self.get( ins[2] ).clone()
                 ctx.locals = self.params
-                ctx.parent_call = self
+                #ctx.parent = self
                 self.params = {}
                 return ctx
         elif ins[0] == "call":
             ctx = self.tmps[ins[2]].clone()
             ctx.locals = self.params
-            ctx.parent_call = self
+            #ctx.parent_call = self
             self.params = {}
             return ctx
         elif ins[0] == "lbl":
@@ -119,6 +119,7 @@ class Interpreter:
     def step(self):
         ctx = self.stack[-1]
         ins = self.instructions[ ctx.ip ]
+        ctx.ip += 1
         print("executing", ins)
         if ins[0] == "fun":
             print(ctx)
@@ -135,8 +136,6 @@ class Interpreter:
             self.stack.pop()
             parent_ctx = self.stack[-1]
             parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
-            print("ret parent ins", parent_instruction)
-            print("ret return value", ctx.tmps[0])
             parent_ctx.tmps[ parent_instruction[1] ] = ctx.tmps[0]
         elif ins[0] == "lambda":
             new_ctx = self.call(ins[2])
@@ -175,11 +174,35 @@ class Interpreter:
                 #return ctx
         elif ins[0] == "jmp":
             ctx.ip = self.labels[ ins[1] ]
-            
+        elif ins[0] == "enter":
+            new_ctx = ctx.clone()
+            new_ctx.parent = ctx
+            self.stack.append(new_ctx)
+            #ctx = new_ctx
+        elif ins[0] == "leave":
+            self.stack.pop()
+            new_old_ctx = self.stack[-1]
+            new_old_ctx.ip = ctx.ip
+            #ctx = new_old_ctx
+        elif ins[0] == "local":
+            ctx.locals[ins[1]] = None
+        elif ins[0] == "table":
+            ctx.tmps[ins[1]] = {}
+        elif ins[0] == "settable":
+            ctx.tmps[ins[1]][ctx.tmps[ins[2]]] = ctx.tmps[ins[3]]
+        elif ins[0] == "gettable":
+            ctx.tmps[ins[1]] = ctx.tmps[ins[2]][ctx.tmps[ins[3]]]
+        elif ins[0] == "dump":
+            for x in self.stack:
+                print(x)
+            #if ins[1]:
+            #    for v in ins[1]:
+            #        print(v, "=", self.stack[-1].tmps.get(v))
+            #else:
+            #    print( list(str(x) for x in self.stack ))
         else:
             raise Exception("Unknown instruction", ins)
 
-        ctx.ip += 1
         #return self
     
     def call(self, label):
@@ -211,6 +234,7 @@ prog_fac = [
     ("calllit", -2, "fac"),
     ("bindlit", "a", -2),
     ("calllit", -3, "print"),
+    ("dump", ["a", "fac"]),
 ]
 
 prog_closure = [
@@ -248,9 +272,75 @@ prog_closure = [
     ("calllit", -7,  "print"),
 ]
 
-i = Interpreter(prog_fac)
+prog_closure2 = [
+    ("fun", "$_lambda_main_1"),
+    ("lit", -1, 1),
+    ("getlit", -2, "y"),
+    ("add", -3, -1, -2),
+    ("setlit", "y", -3),
+    ("getlit", -4, "y"),
+    ("getlit", -5, "x"),
+    ("add", 0, -4, -5),
+    ["ret"],
+
+
+    ("fun", "$_main"),
+    ("table", -1),
+    ("setlit", "a", -1),
+    ("lit", -20, 20),
+    ("setlit", "x", -20),
+    ("lit", "%_loop", 3),
+    ("lit", "%_zero", 0),
+    ("lit", "%_one", 1),
+    ("setlit", "%loop", "%_loop"),
+    ("setlit", "%zero", "%_zero"),
+    ("setlit", "%one", "%_one"),
+    #("dump", []),
+
+    # for loop ...
+    ("lbl", "#start-loop"),
+    ["enter"],
+    ("getlit", "%_loop", "%loop"),
+    ("getlit", "%_zero", "%zero"),
+    ("getlit", "%_one", "%one"),
+    ("eq", "%_cond", "%_loop", "%_zero"),
+    ("jmpt", "#after-loop", "%_cond"),
+    ("local", "y"),
+    ("lit", 0, 0),
+    ("setlit", "y", 0),
+    ("lambda", -2, "$_lambda_main_1"),
+    ("getlit", -5, "a"),
+    ("getlit", "%_loop", "%loop"),
+    ("settable", -5, "%_loop", -2),
+    ("sub", "%_loop", "%_loop", "%_one"),
+    ("setlit", "%loop", "%_loop"),
+    ("dump", ["%_loop", "%_one"]),
+    ["leave"], # TODO: potentially annotate with some form of "level" in case of goto
+    ("jmp", "#start-loop"),
+    ("lbl", "#after-loop"),
+    ["leave"], # a bit ugly, might be solvable with better loop structure
+    ("dump", []),
+
+    ("lit", "%_loop", 3),
+    ("lit", "%_zero", 0),
+    ("lit", "%_one", 1),
+    ("lbl", "#loop2-start"), # dont use enter here for simplicitys sake
+    ("eq", "%_cond", "%_loop", "%_zero"),
+    ("jmpt", "#loop2-end", "%_cond"),
+    ("getlit", "%_a", "a"),
+    ("gettable", "%_lambda", "%_a", "%_loop"),
+    ("call", "_r", "%_lambda"),
+    ("bindlit", "a", "_r"),
+    ("calllit", "_", "print"),
+    ("sub", "%_loop", "%_loop", "%_one"),
+    ("jmp", "#loop2-start"),
+    ("lbl", "#loop2-end"),
+    ("dump", []),
+]
+
+i = Interpreter(prog_closure2)
 i.stack.append(i.call("$_main"))
-for x in range(89):
+for x in range(1900):
     print(x, end=': ')
     i.step()
 
@@ -322,4 +412,13 @@ function addto(x)
 end
 fourplus = addto(4)
 print(fourplus(3))  -- Prints 7
+"""
+
+"""
+a = {}
+local x = 20
+for i = 1, 10 do
+    local y = 0
+    a[i] = function () y = y + 1; return x + y end
+end
 """
