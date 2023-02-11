@@ -14,7 +14,6 @@ class Context:
         self.parent = None
 
     def clone(self):
-        #return self # TODO
         ctx = Context(self.interpreter, self.ip)
         ctx.parent = self.parent
         ctx.parent_call = self.parent_call
@@ -30,76 +29,27 @@ class Context:
             return self.parent.get(name)
         else:
             return ()
+
+    def has_rec(self, name):
+        if name in self.locals:
+            return self
+        elif self.parent is not None:
+            return self.parent.has_rec(name)
+        else:
+            return None
     
     def set(self, name, value):
-        if name in self.locals or self.parent is None:
+        if ctx := self.has_rec(name):
+            #print("Setting", name, "=", value, "in", ctx)
+            ctx.locals[name] = value
+        else:
+            #print("Setting", name, "=", value, "in", self)
             self.locals[name] = value
-        else:
-            self.parent.set(name, value)
-        
+        #if name in self.locals or self.parent is None:
+        #    self.locals[name] = value
+        #else:
+        #    self.parent.set(name, value)
 
-    def step(self):
-        ins = self.interpreter.instructions[self.ip]
-        print("executing", ins)
-        if ins[0] == "fun":
-            print(self)
-            pass
-        elif ins[0] == "getlit":
-            self.tmps[ins[1]] = self.get(ins[2])
-        elif ins[0] == "add":
-            self.tmps[ins[1]] = self.tmps[ins[2]] + self.tmps[ins[3]]
-        elif ins[0] == "sub":
-            self.tmps[ins[1]] = self.tmps[ins[2]] - self.tmps[ins[3]]
-        elif ins[0] == "ret":
-            parent_call_ins = self.interpreter.instructions[self.parent_call.ip]
-            self.parent_call.tmps[parent_call_ins[1]] = self.tmps[0]
-            self.parent_call.ip += 1
-            return self.parent
-        elif ins[0] == "lambda":
-            ctx = self.interpreter.call(ins[2])
-            ctx.parent = self
-            self.tmps[ins[1]] = ctx
-        elif ins[0] == "setlit":
-            self.set(ins[1], self.tmps[ins[2]])
-        elif ins[0] == "lit":
-            self.tmps[ins[1]] = ins[2]
-        elif ins[0] == "bindlit":
-            self.params[ ins[1] ] = self.tmps[ins[2]]
-        elif ins[0] == "calllit":
-            if ins[2] == "print":
-                print("print", self)
-                self.params = {}
-            else:
-                ctx = self.get( ins[2] ).clone()
-                ctx.locals = self.params
-                #ctx.parent = self
-                self.params = {}
-                return ctx
-        elif ins[0] == "call":
-            ctx = self.tmps[ins[2]].clone()
-            ctx.locals = self.params
-            #ctx.parent_call = self
-            self.params = {}
-            return ctx
-        elif ins[0] == "lbl":
-            pass
-        elif ins[0] == "eq":
-            self.tmps[ ins[1] ] = self.tmps[ ins[2] ] == self.tmps[ ins[3] ]
-        elif ins[0] == "jmpt":
-            v = self.tmps[ ins[2] ]
-            if v:
-                self.ip = self.interpreter.labels[ ins[1] ]
-                return self
-        elif ins[0] == "jmp":
-            self.ip = self.interpreter.labels[ ins[1] ]
-            
-        else:
-            raise Exception("Unknown instruction", ins)
-
-        self.ip += 1
-        return self
-            
-        
 
 class Interpreter:
     def __init__(self, instructions):
@@ -120,21 +70,37 @@ class Interpreter:
         ctx = self.stack[-1]
         ins = self.instructions[ ctx.ip ]
         ctx.ip += 1
-        print("executing", ins)
+        #print("executing", ins)
         if ins[0] == "fun":
-            print(ctx)
+            #print(ctx)
             pass
         elif ins[0] == "getlit":
-            ctx.tmps[ins[1]] = ctx.get(ins[2])
+            if ins[2] == "print":
+                ctx.tmps[ins[1]] = lambda x: print(*list(x.values()))
+            else:
+                ctx.tmps[ins[1]] = ctx.get(ins[2])
+        elif ins[0] == "not":
+            ctx.tmps[ins[1]] = not ctx.tmps[ins[2]]
         elif ins[0] == "add":
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]] + ctx.tmps[ins[3]]
+        elif ins[0] == "set":
+            ctx.tmps[ins[1]] = ctx.tmps[ins[2]]
         elif ins[0] == "sub":
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]] - ctx.tmps[ins[3]]
         elif ins[0] == "mul":
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]] * ctx.tmps[ins[3]]
+        elif ins[0] == "gt":
+            ctx.tmps[ins[1]] = ctx.tmps[ins[2]] > ctx.tmps[ins[3]]
+        elif ins[0] == "gte":
+            #print(ins)
+            #print(ctx)
+            ctx.tmps[ins[1]] = ctx.tmps[ins[2]] >= ctx.tmps[ins[3]]
+        elif ins[0] == "lte":
+            ctx.tmps[ins[1]] = ctx.tmps[ins[2]] <= ctx.tmps[ins[3]]
         elif ins[0] == "ret":
             self.stack.pop()
             parent_ctx = self.stack[-1]
+            #print("parent ctx", parent_ctx)
             parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
             parent_ctx.tmps[ parent_instruction[1] ] = ctx.tmps[0]
         elif ins[0] == "lambda":
@@ -143,13 +109,16 @@ class Interpreter:
             ctx.tmps[ ins[1] ] = new_ctx
         elif ins[0] == "setlit":
             ctx.set(ins[1], ctx.tmps[ins[2]])
+            #print(ctx)
         elif ins[0] == "lit":
             ctx.tmps[ins[1]] = ins[2]
         elif ins[0] == "bindlit":
             ctx.params[ ins[1] ] = ctx.tmps[ins[2]]
+        elif ins[0] == "bind":
+            ctx.params[ ins[1] ] = ctx.tmps[ins[2]]
         elif ins[0] == "calllit":
             if ins[2] == "print":
-                print("print", ctx.params['a'])
+                #print("print", ctx.params['a'])
                 ctx.params = {}
             else:
                 new_ctx = ctx.get( ins[2] ).clone()
@@ -158,11 +127,16 @@ class Interpreter:
                 ctx.params = {}
                 self.stack.append(new_ctx)
         elif ins[0] == "call":
-            new_ctx = ctx.tmps[ins[2]].clone()
-            new_ctx.locals = ctx.params
-            new_ctx.parent_call = ctx
-            ctx.params = {}
-            self.stack.append(new_ctx)
+            ##print(ctx)
+            if hasattr(ctx.tmps[ ins[2] ], '__call__'):
+                ctx.tmps[ins[2]](ctx.params)
+            else:
+                new_ctx = ctx.tmps[ins[2]].clone()
+                new_ctx.tmps = ctx.params
+                new_ctx.parent_call = ctx
+                #print("call new ctx", new_ctx)
+                ctx.params = {}
+                self.stack.append(new_ctx)
         elif ins[0] == "lbl":
             pass
         elif ins[0] == "eq":
@@ -175,15 +149,17 @@ class Interpreter:
         elif ins[0] == "jmp":
             ctx.ip = self.labels[ ins[1] ]
         elif ins[0] == "enter":
-            new_ctx = ctx.clone()
-            new_ctx.parent = ctx
-            self.stack.append(new_ctx)
-            #ctx = new_ctx
+            pass
+            #new_ctx = ctx.clone()
+            #new_ctx.parent = ctx
+            #self.stack.append(new_ctx)
+            ##ctx = new_ctx
         elif ins[0] == "leave":
-            self.stack.pop()
-            new_old_ctx = self.stack[-1]
-            new_old_ctx.ip = ctx.ip
-            #ctx = new_old_ctx
+            pass
+            #self.stack.pop()
+            #new_old_ctx = self.stack[-1]
+            #new_old_ctx.ip = ctx.ip
+            ##ctx = new_old_ctx
         elif ins[0] == "local":
             ctx.locals[ins[1]] = None
         elif ins[0] == "table":
@@ -337,88 +313,74 @@ prog_closure2 = [
     ("lbl", "#loop2-end"),
     ("dump", []),
 ]
+pp = [
+("fun","$_addto"),
+("local","x"),
+("setlit","x",1),
+("getlit",-3,"x"),
+("lit",-4,1),
+("add",-2,-3,-4),
+("setlit","x",-2),
+("lambda",-5,"$_lambda-5"),
+("set",0,-5),
+["ret"],
+["leave"],
+["ret"],
+("fun","$_lambda-5"),
+("local","y"),
+("setlit","y",1),
+("getlit",-7,"x"),
+("getlit",-8,"y"),
+("add",-6,-7,-8),
+("set",0,-6),
+["ret"],
+["leave"],
+["ret"],
+("fun","$_main"),
+["enter"],
+("lambda",-1,"$_addto"),
+("setlit","addto",-1),
+("getlit",-10,"addto"),
+("lit",-11,5),
+("bind",1,-11),
+("call",-9,-10),
+("local","add5"),
+("setlit","add5",-9),
+("getlit",-13,"print"),
+("getlit",-15,"add5"),
+("lit",-16,7),
+("bind",1,-16),
+("call",-14,-15),
+("bind",1,-14),
+("call",-12,-13),
+("getlit",-18,"print"),
+("getlit",-20,"add5"),
+("lit",-21,5),
+("bind",1,-21),
+("call",-19,-20),
+("bind",1,-19),
+("call",-17,-18),
+("getlit",-23,"print"),
+("getlit",-25,"add5"),
+("lit",-26,0),
+("bind",1,-26),
+("call",-24,-25),
+("bind",1,-24),
+("call",-22,-23),
+["leave"],
+["ret"],
+]
 
-i = Interpreter(prog_closure2)
+i = Interpreter(pp)
 i.stack.append(i.call("$_main"))
-for x in range(1900):
-    print(x, end=': ')
-    i.step()
-
-exit(0)
-ctx = i.call("$_main")
+ins_count = 0
 while True:
-    ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step() # fac(0)
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-ctx = ctx.step()
-
-
-
-
-
-"""
-Since everything in lua is a hashtable and jass also gives us some good
-hashtables we should probably use it as much as possible.
-For example:
-    * Have (most) instructions take a table
-    * Have special instructions for _G, parameters, locals and closed over
-      variables
-
-Also use special instructions for common constructs like:
-    * Calling a "well-known" function (this still does a string
-        lookup etc. but condensed into one instruction)
-    * Might even use rewrite rules for that
-
-"""
-
-"""
-function addto(x)
-  -- Return a new function that adds x to the argument
-  return function(y)
-    --[=[ When we refer to the variable x, which is outside the current
-      scope and whose lifetime would be shorter than that of this anonymous
-      function, Lua creates a closure.]=]
-    return x + y
-  end
-end
-fourplus = addto(4)
-print(fourplus(3))  -- Prints 7
-"""
-
-"""
-a = {}
-local x = 20
-for i = 1, 10 do
-    local y = 0
-    a[i] = function () y = y + 1; return x + y end
-end
-"""
+    i.step()
+    ins_count += 1
+    #try:
+    #    i.step()
+    #    ins_count += 1
+    #except IndexError:
+    #    break
+print("Script took", ins_count, "steps")
+exit(0)

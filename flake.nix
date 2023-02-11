@@ -9,9 +9,7 @@
             let pkgs = import nixpkgs { inherit system; };
 
                 ghcPackages = pkgs.haskellPackages.ghcWithPackages (ps: [
-                    ps.data-interval
-                    ps.PSQueue
-                    ps.aeson
+                    ps.language-lua
                 ]);
 
 		pythonPackages = pkgs.python3.withPackages( ps: [
@@ -22,7 +20,7 @@
 		    buildInputs = [
 			pythonPackages
 			pkgs.lua
-                        #ghcPackages
+                        ghcPackages
 		    ];
 		};
             });
