@@ -63,9 +63,9 @@ class Interpreter:
         self.output = io.StringIO()
 
     def print(self, ctx):
-        l = list(ctx.values())
-        print(*l)
-        print(*l, file=self.output)
+        l = "\t".join(list(map(str, ctx.values())))
+        print(l)
+        print(l, file=self.output)
         
         
 
@@ -81,9 +81,8 @@ class Interpreter:
         ctx = self.stack[-1]
         ins = self.instructions[ ctx.ip ]
         ctx.ip += 1
-        #print("executing", ins)
+        print("executing", ins)
         if ins[0] == "fun":
-            #print(ctx)
             pass
         elif ins[0] == "getlit":
             if ins[2] == "print":
@@ -92,6 +91,12 @@ class Interpreter:
                 ctx.tmps[ins[1]] = ctx.get(ins[2])
         elif ins[0] == "not":
             ctx.tmps[ins[1]] = not ctx.tmps[ins[2]]
+        elif ins[0] == "neg":
+            ctx.tmps[ins[1]] = - ctx.tmps[ins[2]]
+        elif ins[0] == "complement":
+            ctx.tmps[ins[1]] =  -ctx.tmps[ins[2]] - 1
+        elif ins[0] == "len":
+            ctx.tmps[ins[1]] =  len(ctx.tmps[ins[2]])
         elif ins[0] == "add":
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]] + ctx.tmps[ins[3]]
         elif ins[0] == "set":
@@ -105,18 +110,13 @@ class Interpreter:
         elif ins[0] == "lt":
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]] < ctx.tmps[ins[3]]
         elif ins[0] == "gte":
-            #print(ins)
-            #print(ctx)
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]] >= ctx.tmps[ins[3]]
         elif ins[0] == "lte":
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]] <= ctx.tmps[ins[3]]
         elif ins[0] == "ret":
             self.stack.pop()
-            #parent_ctx = self.stack[-1]
             parent_ctx = ctx.parent_call #self.stack[-1]
-            #print("parent ctx", parent_ctx)
             parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
-            #parent_ctx.tmps[ parent_instruction[1] ] = ctx.tmps[0]
             parent_ctx.tmps[ parent_instruction[1] ] = ctx.get("$_ret")
         elif ins[0] == "table":
             ctx.tmps[ ins[1] ] = {}
@@ -130,32 +130,19 @@ class Interpreter:
             ctx.tmps[ ins[1] ] = new_ctx
         elif ins[0] == "setlit":
             ctx.set(ins[1], ctx.tmps[ins[2]])
-            #print(ctx)
         elif ins[0] == "lit":
             ctx.tmps[ins[1]] = ins[2]
         elif ins[0] == "bindlit":
             ctx.params[ ins[1] ] = ctx.tmps[ins[2]]
         elif ins[0] == "bind":
             ctx.params[ ins[1] ] = ctx.tmps[ins[2]]
-        #elif ins[0] == "calllit":
-        #    if ins[2] == "print":
-        #        #print("print", ctx.params['a'])
-        #        ctx.params = {}
-        #    else:
-        #        new_ctx = ctx.get( ins[2] ).clone()
-        #        new_ctx.locals = ctx.params
-        #        new_ctx.parent_call = ctx
-        #        ctx.params = {}
-        #        self.stack.append(new_ctx)
         elif ins[0] == "call":
-            ##print(ctx)
             if hasattr(ctx.tmps[ ins[2] ], '__call__'):
                 ctx.tmps[ins[2]](ctx.params)
             else:
                 new_ctx = ctx.tmps[ins[2]].clone()
                 new_ctx.tmps = ctx.params
                 new_ctx.parent_call = ctx
-                #print("call new ctx", new_ctx)
                 ctx.params = {}
                 self.stack.append(new_ctx)
         elif ins[0] == "lbl":
@@ -166,21 +153,16 @@ class Interpreter:
             v = ctx.tmps[ ins[2] ]
             if v:
                 ctx.ip = self.labels[ ins[1] ]
-                #return ctx
         elif ins[0] == "jmp":
             ctx.ip = self.labels[ ins[1] ]
         elif ins[0] == "enter":
-            #pass
             new_ctx = ctx.clone()
             new_ctx.parent = ctx
             self.stack.append(new_ctx)
-            #ctx = new_ctx
         elif ins[0] == "leave":
-            #pass
             self.stack.pop()
             new_old_ctx = self.stack[-1]
             new_old_ctx.ip = ctx.ip
-            #ctx = new_old_ctx
         elif ins[0] == "local":
             ctx.locals[ins[1]] = None
         elif ins[0] == "table":
@@ -192,15 +174,8 @@ class Interpreter:
         elif ins[0] == "dump":
             for x in self.stack:
                 print(x)
-            #if ins[1]:
-            #    for v in ins[1]:
-            #        print(v, "=", self.stack[-1].tmps.get(v))
-            #else:
-            #    print( list(str(x) for x in self.stack ))
         else:
             raise Exception("Unknown instruction", ins)
-
-        #return self
     
     def call(self, label):
         idx = self.labels[label]

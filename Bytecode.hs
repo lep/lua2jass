@@ -3,9 +3,15 @@
 module Bytecode where
 
 import Data.Text
+import Data.Text.Encoding
 import Prelude hiding (LT,GT)
 
 import Data.Aeson
+
+import Language.Lua.StringLiteral
+import Data.ByteString.Lazy (ByteString)
+import qualified Data.ByteString.Lazy as BL
+import Data.Maybe
 
 type Register = Int
 type Label = Int
@@ -32,6 +38,9 @@ data Bytecode =
     | Jump Label
     | JumpT Label Register
     | Not Register Register
+    | Neg Register Register
+    | Len Register Register
+    | Complement Register Register
     | GTE Register Register Register
     | GT Register Register Register
     | LTE Register Register Register
@@ -43,6 +52,13 @@ data Bytecode =
     | Lambda Register Text
     | Local Text
     deriving (Show)
+
+-- TODO: very unholy function
+bla :: Text -> Text
+bla s =
+  case interpretStringLiteral $ unpack s of
+    Nothing -> error . show $ ("could not interp", s)
+    Just bs -> decodeUtf8 $ BL.toStrict bs
 
 instance ToJSON Bytecode where
     toJSON = \case
@@ -56,7 +72,7 @@ instance ToJSON Bytecode where
         LitInt r t -> toJSON ("lit", r, (readT t) :: Int)
         LitFloat r t -> toJSON ("lit", r, t)
         LitBool r t -> toJSON ("lit", r, t)
-        LitNil r -> toJSON ("lit", r, "nil")
+        LitNil r -> toJSON ("lit", r, "")
         Set a b -> toJSON ("set", a, b)
         SetLit a b -> toJSON ("setlit", a, b)
         Ret -> toJSON ["ret"]
@@ -64,6 +80,9 @@ instance ToJSON Bytecode where
         Jump lbl -> toJSON ("jmp", lbl)
         JumpT lbl r -> toJSON ("jmpt", lbl, r)
         Not a b -> toJSON ("not", a, b)
+        Neg a b -> toJSON ("neg", a, b)
+        Len a b -> toJSON ("len", a, b)
+        Complement a b -> toJSON ("complement", a, b)
         GTE a b c -> toJSON ("gte", a, b, c)
         GT a b c -> toJSON ("gt", a, b, c)
         LTE a b c -> toJSON ("lte", a, b, c)

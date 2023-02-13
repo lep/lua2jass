@@ -27,7 +27,7 @@
 		    buildInputs = [
 			pythonPackages
                         ghcPackages
-			pkgs.lua
+			pkgs.lua5_3_compat
 			pkgs.jq
 		    ];
 		};
