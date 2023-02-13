@@ -5,6 +5,8 @@ module Bytecode where
 import Data.Text
 import Prelude hiding (LT,GT)
 
+import Data.Aeson
+
 type Register = Int
 type Label = Int
 type Name = Text
@@ -22,6 +24,9 @@ data Bytecode =
     | LitNil Register
     | Set Register Register
     | SetLit Name Register
+    | Table Register
+    | SetTable Register Register Register
+    | GetTable Register Register Register
     | Ret
     | Label Label
     | Jump Label
@@ -38,6 +43,40 @@ data Bytecode =
     | Lambda Register Text
     | Local Text
     deriving (Show)
+
+instance ToJSON Bytecode where
+    toJSON = \case
+        Fun fn -> toJSON ( "fun", fn)
+        Call a b -> toJSON ("call", a, b)
+        Enter -> toJSON ["enter"]
+        Leave -> toJSON ["leave"]
+        GetLit r t -> toJSON ("getlit", r, t)
+        Bind a b -> toJSON ("bind", a, b)
+        LitString r t -> toJSON ("lit", r, t)
+        LitInt r t -> toJSON ("lit", r, (readT t) :: Int)
+        LitFloat r t -> toJSON ("lit", r, t)
+        LitBool r t -> toJSON ("lit", r, t)
+        LitNil r -> toJSON ("lit", r, "nil")
+        Set a b -> toJSON ("set", a, b)
+        SetLit a b -> toJSON ("setlit", a, b)
+        Ret -> toJSON ["ret"]
+        Label lbl -> toJSON ("lbl", lbl)
+        Jump lbl -> toJSON ("jmp", lbl)
+        JumpT lbl r -> toJSON ("jmpt", lbl, r)
+        Not a b -> toJSON ("not", a, b)
+        GTE a b c -> toJSON ("gte", a, b, c)
+        GT a b c -> toJSON ("gt", a, b, c)
+        LTE a b c -> toJSON ("lte", a, b, c)
+        LT a b c -> toJSON ("lt", a, b, c)
+        Mul a b c -> toJSON ("mul", a, b, c)
+        Sub a b c -> toJSON ("sub", a, b, c)
+        Add a b c -> toJSON ("add", a, b, c)
+        Lambda r n -> toJSON ("lambda", r, n)
+        Local n -> toJSON ("local", n)
+        Table n -> toJSON ("table", n)
+        SetTable a b c -> toJSON ("settable", a, b, c)
+        GetTable a b c -> toJSON ("gettable", a, b, c)
+        x -> error $ show x
 
 readT :: Read a => Text -> a
 readT = read . unpack

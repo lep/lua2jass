@@ -3,6 +3,8 @@
 
 import Prelude hiding (head, LT, GT)
 
+import Data.Aeson (encode)
+
 import Data.Text (Text)
 import qualified Data.Text as Text
 
@@ -24,6 +26,8 @@ import qualified Bytecode as B
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+
+import qualified Data.ByteString.Lazy as BL
 
 type Asm = [Bytecode]
 type S = (Int, Map Text Asm)
@@ -64,34 +68,35 @@ compileScript :: Block -> CompileM ()
 compileScript block = do
     (_, asm) <- local $ do
         emit $ B.Fun "$_main"
-        compile block
+        compileBlock block
     addFunction "$_main" asm
 
     
 compileFn :: Block -> CompileM ()
 compileFn (Block stmts ret) = do
+    emit $ B.Local "$_ret"
     mapM_ compileStat stmts
     case ret of
         Nothing -> pure ()
         Just [e] -> do -- TODO: multiple returns
             x <- compileExp e
-            emit $ B.Set 0 x
+            emit $ B.SetLit "$_ret" x
             emit B.Ret
     emit B.Leave
     emit B.Ret
 
-compile :: Block -> CompileM ()
-compile (Block stmts ret) = do
+compileBlock :: Block -> CompileM ()
+compileBlock (Block stmts ret) = do
     emit B.Enter
     mapM_ compileStat stmts
     case ret of
         Nothing -> pure ()
         Just [e] -> do -- TODO: multiple returns
             x <- compileExp e
-            emit $ B.Set 0 x
+            emit $ B.SetLit "$_ret" x
             emit B.Ret
     emit B.Leave
-    emit B.Ret
+    --emit B.Ret
 
 compileStat :: Stat -> CompileM ()
 compileStat = \case
@@ -100,6 +105,11 @@ compileStat = \case
     Assign [VarName (Name v1)] [e1] -> do
         y <- compileExp e1
         emit $ B.SetLit v1 y
+    Assign [Select prefixExp exp] [e1] -> do
+        tbl <- compilePrefixExp prefixExp
+        idx <- compileExp exp
+        val <- compileExp e1
+        emit $ B.SetTable tbl idx val
 
     LocalAssign [Name v1] (Just [e1]) -> do
         x <- compileExp e1
@@ -117,7 +127,7 @@ compileStat = \case
         emit $ B.Not c' c
         emit $ B.JumpT lbl_end c'
 
-        compile block
+        compileBlock block
 
 
         emit $ B.Jump lbl_start
@@ -149,12 +159,12 @@ compileStat = \case
         c <- compileExp cond
         emit $ B.Not not_cond c
         emit $ B.JumpT lbl_not not_cond
-        compile block
+        compileBlock block
         emit $ B.Jump lbl_end
         emit $ B.Label lbl_not
 
     compileElseBlock lbl_end body = do
-        compile body
+        compileBlock body
         emit $ B.Jump lbl_end
 
 
@@ -223,6 +233,11 @@ compileExp = \case
         pure reg
     PrefixExp e -> compilePrefixExp e
 
+    TableConst [] -> do
+        x <- fresh
+        emit $ B.Table x
+        pure x
+
     x -> error $ show x
 
 compileVar = \case
@@ -230,19 +245,30 @@ compileVar = \case
         tmp <- fresh
         emit $ B.GetLit tmp name
         pure tmp
+    Select prefixExp exp -> do
+        x <- fresh
+        table <- compilePrefixExp prefixExp
+        index <- compileExp exp
+        emit $ B.GetTable x table index
+        pure x
+        
 
 
 main = do
     [args] <- getArgs
     Right ast <- parseFile args
-    print ast
+    --hPrint stderr ast
 
-    putStrLn "["
-    let m = runCompiler $ compileScript ast
-    forM_ (Map.toList m) $ \(_, asm) -> do
-        forM_ asm $ \x -> do
-            putStr $ B.toPython x
-            putStrLn ","
-    putStrLn "]"
+    let asm = concatMap snd . Map.toList . runCompiler $ compileScript ast
+
+    BL.putStr $ encode asm
+    --putStrLn $ unlines asm
+    --putStrLn "["
+    --let m = runCompiler $ compileScript ast
+    --forM_ (Map.toList m) $ \(_, asm) -> do
+    --    forM_ asm $ \x -> do
+    --        putStr $ B.toPython x
+    --        putStrLn ","
+    --putStrLn "]"
 
 
