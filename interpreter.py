@@ -2,22 +2,25 @@ import json
 import sys
 import io
 
+class StopInterpreterException(Exception):
+    pass
+
 class Value:
     def __init__(self, type):
         self.type = type
 
 class Context:
-    def __init__(self, i, ip):
-        self.interpreter = i
+    def __init__(self, ip, chunk_name):
         self.ip = ip
         self.locals = {}
         self.params = {}
         self.tmps = {}
         self.parent_call = None
         self.parent = None
+        self.chunk_name = chunk_name
 
     def clone(self):
-        ctx = Context(self.interpreter, self.ip)
+        ctx = Context(self.ip, self.chunk_name)
         ctx.parent = self.parent
         ctx.parent_call = self.parent_call
         return ctx
@@ -79,9 +82,12 @@ class Interpreter:
 
     def step(self):
         ctx = self.stack[-1]
-        ins = self.instructions[ ctx.ip ]
+        try:
+            ins = self.instructions[ ctx.ip ]
+        except IndexError:
+            raise StopInterpreterException()
         ctx.ip += 1
-        print("executing", ins)
+        #print("executing", ins)
         if ins[0] == "fun":
             pass
         elif ins[0] == "getlit":
@@ -114,8 +120,11 @@ class Interpreter:
         elif ins[0] == "lte":
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]] <= ctx.tmps[ins[3]]
         elif ins[0] == "ret":
-            self.stack.pop()
-            parent_ctx = ctx.parent_call #self.stack[-1]
+            assert(self.stack.pop() is ctx)
+            parent_ctx = ctx.parent_call
+            if parent_ctx is None:
+                raise StopInterpreterException()
+            #print("returning from chunk", ctx.chunk_name, "to", parent_ctx.chunk_name)
             parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
             parent_ctx.tmps[ parent_instruction[1] ] = ctx.get("$_ret")
         elif ins[0] == "table":
@@ -127,6 +136,7 @@ class Interpreter:
         elif ins[0] == "lambda":
             new_ctx = self.call(ins[2])
             new_ctx.parent = ctx
+            new_ctx.chunk_name = ins[2]
             ctx.tmps[ ins[1] ] = new_ctx
         elif ins[0] == "setlit":
             ctx.set(ins[1], ctx.tmps[ins[2]])
@@ -145,10 +155,13 @@ class Interpreter:
                 new_ctx.parent_call = ctx
                 ctx.params = {}
                 self.stack.append(new_ctx)
+                #print("Going from chunk", ctx.chunk_name, "to", new_ctx.chunk_name)
         elif ins[0] == "lbl":
             pass
         elif ins[0] == "eq":
             ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] == ctx.tmps[ ins[3] ]
+        elif ins[0] == "neq":
+            ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] != ctx.tmps[ ins[3] ]
         elif ins[0] == "jmpt":
             v = ctx.tmps[ ins[2] ]
             if v:
@@ -179,7 +192,7 @@ class Interpreter:
     
     def call(self, label):
         idx = self.labels[label]
-        return Context(self, idx)
+        return Context(idx, label)
 
 
 def run_bytecode(pp):
@@ -188,14 +201,18 @@ def run_bytecode(pp):
     i.stack.append(i.call("$_main"))
     ins_count = 0
     while True:
-        i.step()
-        ins_count += 1
+        try:
+            i.step()
+            ins_count += 1
+        except StopInterpreterException:
+            break
         #try:
         #    i.step()
         #    ins_count += 1
         #except IndexError:
         #    break
-    return i.output.getvalue()
+    return i.output.getvalue(), ins_count
 
 if __name__ == '__main__':
-    run_bytecode(json.load(open(sys.argv[1])))
+    out, cnt = run_bytecode(json.load(open(sys.argv[1])))
+    print(f"Programm took {cnt} steps to finish")

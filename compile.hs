@@ -71,6 +71,7 @@ compileScript block = do
     (_, asm) <- local $ do
         emit $ B.Fun "$_main"
         compileBlock block
+        emit B.Ret
     addFunction "$_main" asm
 
     
@@ -90,7 +91,7 @@ compileFn (Block stmts ret) = do
             --emit $ B.SetLit "$_ret" x
             emit $ B.SetTable ret' zero x
             emit B.Ret
-    emit B.Leave
+    --emit B.Leave
     emit B.Ret
 
 compileBlock :: Block -> CompileM ()
@@ -166,9 +167,62 @@ compileStat = \case
         emit $ B.Jump lbl_start
         emit $ B.Label lbl_end
 
+    ForRange (Name var) start end step block -> do
+        lbl_start <- fresh
+        lbl_end <- fresh
+
+        zero <- fresh
+        emit $ B.LitInt zero "0"
+
+        reg_start <- compileExp start
+        emit $ B.Local var
+        emit $ B.SetLit var reg_start
+
+        reg_end <- compileExp end
+
+        reg_step <- case step of
+            Nothing -> do
+                one <- fresh
+                emit $ B.LitInt one "1"
+                pure one
+            Just e -> compileExp e
+
+        -- initial compare to see if we have to skip the loop alltogehter
+        -- adapted from lvm.c:forlimit
+        -- original `step > 0 ? start > end : start < end`
+        -- becomes `(step < 0) != (start >= end)
+        x <- fresh
+        y <- fresh
+        skip_loop <- fresh
+        emit $ B.LT x reg_step zero
+        emit $ B.GTE y reg_start reg_end
+        emit $ B.NEQ skip_loop x y
+        emit $ B.JumpT lbl_end skip_loop
+
+
+        -- loop body
+        emit $ B.Label lbl_start
+        compileBlock block
+    
+
+        -- equality check
+        reg_var <- fresh
+        reg_tmp1 <- fresh
+        emit $ B.GetLit reg_var var
+        emit $ B.EQ reg_tmp1 reg_var reg_end
+        emit $ B.JumpT lbl_end reg_tmp1
+
+        -- var += step
+        reg_tmp2 <- fresh
+        emit $ B.Add reg_tmp2 reg_var reg_step
+        emit $ B.SetLit var reg_tmp2
+
+        emit $ B.Jump lbl_start
+        emit $ B.Label lbl_end
+
         
 
-    FunAssign (FunName (Name fnname) [] Nothing) funBody@(FunBody args isVararg body) -> do
+    FunAssign (FunName (Name fnname) [] Nothing) funBody -> do
         let internalName = "$_" <> fnname
         x <- fresh
         compileFunBody internalName funBody
@@ -209,10 +263,8 @@ compileStat = \case
         emit $ B.LitString y obj
         emit $ B.GetLit z fnname
         emit $ B.SetTable z y x 
-        --emit $ B.SetLit fnname x
 
     FunAssign (FunName (Name t) ns (Just (Name method))) (FunBody args isVararg body) -> do
-        traceShowM (t, ns, method)
         r0 <- fresh
         emit $ B.GetLit r0 t
         let fnname = method
@@ -237,8 +289,6 @@ compileStat = \case
 
     If ifs elseBlock -> do
         lbl_end <- fresh
-        --lbl_b4_else <- fresh
-        --foldM (compileIfBlock lbl_end) lbl_b4_else $ reverse ifs
 
         mapM_ (compileIfBlock lbl_end) ifs
         
@@ -422,13 +472,3 @@ main = do
     let asm = concatMap snd . Map.toList . runCompiler $ compileScript ast
 
     BL.putStr $ encode asm
-    --putStrLn $ unlines asm
-    --putStrLn "["
-    --let m = runCompiler $ compileScript ast
-    --forM_ (Map.toList m) $ \(_, asm) -> do
-    --    forM_ asm $ \x -> do
-    --        putStr $ B.toPython x
-    --        putStrLn ","
-    --putStrLn "]"
-
-

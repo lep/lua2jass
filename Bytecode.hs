@@ -4,7 +4,7 @@ module Bytecode where
 
 import Data.Text
 import Data.Text.Encoding
-import Prelude hiding (LT,GT)
+import Prelude hiding (LT,GT, EQ)
 
 import Data.Aeson
 
@@ -45,6 +45,8 @@ data Bytecode =
     | GT Register Register Register
     | LTE Register Register Register
     | LT Register Register Register
+    | EQ Register Register Register
+    | NEQ Register Register Register
     | Mul Register Register Register
     | Sub Register Register Register
     | Add Register Register Register
@@ -87,6 +89,8 @@ instance ToJSON Bytecode where
         GT a b c -> toJSON ("gt", a, b, c)
         LTE a b c -> toJSON ("lte", a, b, c)
         LT a b c -> toJSON ("lt", a, b, c)
+        EQ a b c -> toJSON ("eq", a, b, c)
+        NEQ a b c -> toJSON ("neq", a, b, c)
         Mul a b c -> toJSON ("mul", a, b, c)
         Sub a b c -> toJSON ("sub", a, b, c)
         Add a b c -> toJSON ("add", a, b, c)
@@ -95,7 +99,7 @@ instance ToJSON Bytecode where
         Table n -> toJSON ("table", n)
         SetTable a b c -> toJSON ("settable", a, b, c)
         GetTable a b c -> toJSON ("gettable", a, b, c)
-        x -> error $ show x
+        --x -> error $ show x
 
 readT :: Read a => Text -> a
 readT = read . unpack
