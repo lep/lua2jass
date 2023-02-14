@@ -187,7 +187,7 @@ compileStat = \case
                 pure one
             Just e -> compileExp e
 
-        -- initial compare to see if we have to skip the loop alltogehter
+        -- initial compare to see if we have to skip the loop alltogether
         -- adapted from lvm.c:forlimit
         -- original `step > 0 ? start > end : start < end`
         -- becomes `(step < 0) != (start >= end)
@@ -220,7 +220,13 @@ compileStat = \case
         emit $ B.Jump lbl_start
         emit $ B.Label lbl_end
 
-        
+    LocalFunAssign (Name name) funBody -> do
+        x <- fresh
+        let internalName = Text.pack $ "$_" <> Text.unpack name <> show x
+        compileFunBody internalName funBody
+        emit $ B.Local name
+        emit $ B.Lambda x internalName
+        emit $ B.SetLit name x
 
     FunAssign (FunName (Name fnname) [] Nothing) funBody -> do
         let internalName = "$_" <> fnname
