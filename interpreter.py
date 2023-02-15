@@ -34,7 +34,7 @@ class Context:
         elif self.parent is not None:
             return self.parent.get(name)
         else:
-            return ()
+            return None
 
     def has_rec(self, name):
         if name in self.locals:
@@ -46,15 +46,9 @@ class Context:
     
     def set(self, name, value):
         if ctx := self.has_rec(name):
-            #print("Setting", name, "=", value, "in", ctx)
             ctx.locals[name] = value
         else:
-            #print("Setting", name, "=", value, "in", self)
             self.locals[name] = value
-        #if name in self.locals or self.parent is None:
-        #    self.locals[name] = value
-        #else:
-        #    self.parent.set(name, value)
 
 
 class Interpreter:
@@ -92,7 +86,7 @@ class Interpreter:
             pass
         elif ins[0] == "getlit":
             if ins[2] == "print":
-                ctx.tmps[ins[1]] = self.print #lambda x: print(*list(x.values()))
+                ctx.tmps[ins[1]] = self.print
             else:
                 ctx.tmps[ins[1]] = ctx.get(ins[2])
         elif ins[0] == "not":
@@ -129,10 +123,18 @@ class Interpreter:
             parent_ctx.tmps[ parent_instruction[1] ] = ctx.get("$_ret")
         elif ins[0] == "table":
             ctx.tmps[ ins[1] ] = {}
+        elif ins[0] == "append":
+            offset = ins[ 1 ] -1
+            target_tbl = ctx.tmps[ ins[2] ]
+            source_tbl = ctx.tmps[ ins[3] ]
+            #print("target", target_tbl)
+            #print("source", source_tbl)
+            for k in source_tbl:
+                target_tbl[ k + offset ] = source_tbl[k]
         elif ins[0] == "settable":
             ctx.tmps[ ins[1] ][ ctx.tmps[ins[2]] ] = ctx.tmps[ins[3]]
         elif ins[0] == "gettable":
-            ctx.tmps[ ins[1] ] = ctx.tmps[ins[2]][ ctx.tmps[ins[3]] ]
+            ctx.tmps[ ins[1] ] = ctx.tmps[ins[2]].get( ctx.tmps[ins[3]] )
         elif ins[0] == "lambda":
             new_ctx = self.call(ins[2])
             new_ctx.parent = ctx
@@ -142,16 +144,22 @@ class Interpreter:
             ctx.set(ins[1], ctx.tmps[ins[2]])
         elif ins[0] == "lit":
             ctx.tmps[ins[1]] = ins[2]
+        elif ins[0] == "nil":
+            ctx.tmps[ins[1]] = None
         elif ins[0] == "bindlit":
             ctx.params[ ins[1] ] = ctx.tmps[ins[2]]
         elif ins[0] == "bind":
             ctx.params[ ins[1] ] = ctx.tmps[ins[2]]
         elif ins[0] == "call":
-            if hasattr(ctx.tmps[ ins[2] ], '__call__'):
-                ctx.tmps[ins[2]](ctx.params)
+            reg_res = ins[1]
+            reg_fn = ins[2]
+            reg_params = ins[3]
+            if hasattr(ctx.tmps[ reg_fn ], '__call__'):
+                ctx.tmps[reg_fn](ctx.tmps[reg_params])
             else:
-                new_ctx = ctx.tmps[ins[2]].clone()
-                new_ctx.tmps = ctx.params
+                new_ctx = ctx.tmps[reg_fn].clone()
+                #new_ctx.tmps = ctx.params
+                new_ctx.tmps = ctx.tmps[reg_params]
                 new_ctx.parent_call = ctx
                 ctx.params = {}
                 self.stack.append(new_ctx)
@@ -159,6 +167,9 @@ class Interpreter:
         elif ins[0] == "lbl":
             pass
         elif ins[0] == "eq":
+            a = ctx.tmps[ins[2]]
+            b = ctx.tmps[ins[3]]
+            print("compaing", a, "and", b, ":", a==b)
             ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] == ctx.tmps[ ins[3] ]
         elif ins[0] == "neq":
             ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] != ctx.tmps[ ins[3] ]
@@ -201,6 +212,7 @@ def run_bytecode(pp):
     i.stack.append(i.call("$_main"))
     ins_count = 0
     while True:
+    #for _ in range(32):
         try:
             i.step()
             ins_count += 1
