@@ -160,6 +160,14 @@ compileAssign vs es = do
             reg_val <- fresh
             emit $ B.GetTable reg_val reg_varargs reg_idx
             emit $ f reg_val
+    go (f:fs) (reg_varargs:regs) (Vararg:es) = do
+        reg_one <- fresh
+        emit $ B.LitInt reg_one "1"
+        reg_val <- fresh
+        emit $ B.GetTable reg_val reg_varargs reg_one
+        emit $ f reg_val
+
+        go fs regs es
 
 
     go (f:fs) (reg_e:regs) (_:es) = do
