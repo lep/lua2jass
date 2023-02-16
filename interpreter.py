@@ -87,6 +87,9 @@ class Interpreter:
         elif ins[0] == "getlit":
             if ins[2] == "print":
                 ctx.tmps[ins[1]] = self.print
+            elif ins[2] == "$_params":
+                #print("my params are", ctx.tmps)
+                ctx.tmps[ins[1]] = ctx.tmps
             else:
                 ctx.tmps[ins[1]] = ctx.get(ins[2])
         elif ins[0] == "not":
@@ -131,6 +134,21 @@ class Interpreter:
             #print("source", source_tbl)
             for k in source_tbl:
                 target_tbl[ k + offset ] = source_tbl[k]
+        elif ins[0] == "getlist":
+            offset = ins[1]
+            target_tbl = ctx.tmps[ ins[2] ]
+            source_tbl = ctx.tmps[ ins[3] ]
+            i = offset
+            #print("source", source_tbl, "offset", offset)
+            while True:
+                if i in source_tbl:
+                    target_tbl[ i - offset +1 ] = source_tbl[ i ]
+                else:
+                    break
+                i += 1
+            #print("target", target_tbl)
+            #for k in source_tbl:
+            #    target_tbl[ k - off ] = source_tbl[ k ]
         elif ins[0] == "settable":
             ctx.tmps[ ins[1] ][ ctx.tmps[ins[2]] ] = ctx.tmps[ins[3]]
         elif ins[0] == "gettable":
@@ -169,7 +187,7 @@ class Interpreter:
         elif ins[0] == "eq":
             a = ctx.tmps[ins[2]]
             b = ctx.tmps[ins[3]]
-            print("compaing", a, "and", b, ":", a==b)
+            #print("compaing", a, "and", b, ":", a==b)
             ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] == ctx.tmps[ ins[3] ]
         elif ins[0] == "neq":
             ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] != ctx.tmps[ ins[3] ]
