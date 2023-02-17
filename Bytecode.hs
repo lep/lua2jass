@@ -65,6 +65,8 @@ data Bytecode =
     | Fun Text
     | Lambda Register Text
     | Local Text
+
+    | Comment Text
     deriving (Show)
 
 -- TODO: very unholy function
@@ -123,6 +125,8 @@ instance ToJSON Bytecode where
         GetList idx a b -> toJSON ("getlist", idx, a, b)
         SetTable a b c -> toJSON ("settable", a, b, c)
         GetTable a b c -> toJSON ("gettable", a, b, c)
+
+        Comment txt -> toJSON ("comment", txt)
         --x -> error $ show x
 
 readT :: Read a => Text -> a

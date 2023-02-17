@@ -81,7 +81,7 @@ compileReturn reg_ret = go 1
         reg_res <- compileFunCall fc
         emit $ B.Append idx reg_ret reg_res
     go idx (e:es) = do
-        reg_res <- compileExp e
+        reg_res <- compileExp compilePrefixExp' e
         reg_idx <- fresh
         emit $ B.LitInt reg_idx $ Text.pack $ show idx
         emit $ B.SetTable reg_ret reg_idx reg_res
@@ -103,11 +103,10 @@ compileFn (Block stmts ret) = do
 compileBlock :: Block -> CompileM ()
 compileBlock block = do
     emit B.Enter
-    compileBlock' block
-    emit B.Leave
+    compileBlock' True block
 
-compileBlock' :: Block -> CompileM ()
-compileBlock' (Block stmts ret) = do
+compileBlock' :: Bool -> Block -> CompileM ()
+compileBlock' emitLeave (Block stmts ret) = do
     mapM_ compileStat stmts
     case ret of
         Nothing -> pure ()
@@ -115,35 +114,40 @@ compileBlock' (Block stmts ret) = do
             reg_ret <- fresh
             emit $ B.GetLit reg_ret "$_ret"
             compileReturn reg_ret es
+            when emitLeave $
+                emit B.Leave
             emit $ B.Ret
 
 --compileVarAssign :: B.Register -> Var -> CompileM ()
-compileVarAssign = \case
+compileVarAssign define = \case
     VarName (Name name) -> do
-        pure $ \value -> B.SetLit name value
+        pure $ \value -> do
+            define name
+            emit $ B.SetLit name value
     Select prefixExp exp -> do
-        tbl <- compilePrefixExp prefixExp
-        idx <- compileExp exp
-        pure $ \value -> B.SetTable tbl idx value
+        tbl <- compilePrefixExp' prefixExp
+        idx <- compileExp compilePrefixExp' exp
+        pure $ \value -> emit $ B.SetTable tbl idx value
     SelectName tbl (Name name) -> do
-        tbl' <- compilePrefixExp tbl
+        tbl' <- compilePrefixExp' tbl
         idx <- fresh
         emit $ B.LitString idx name
-        pure $ \value -> B.SetTable tbl' idx value
+        pure $ \value -> emit $ B.SetTable tbl' idx value
         
 
-compileAssign vs es = do
+compileAssign vs es = compileAssign' (const $ pure ()) vs es
+compileAssign' define vs es = do
     -- compile all lhs first, then compile all rhs, then match up the registers
     -- with special handling of varargs stuff
-    fns <- mapM compileVarAssign vs
-    regs_es <- mapM compileExp es
+    fns <- mapM (compileVarAssign define) vs
+    regs_es <- mapM (compileExp compilePrefixExp) es
     go fns regs_es es
   where
     go [] _ _ = pure ()
-    go fs [] _ = mapM_ `flip` fs $ \v -> do
+    go fs _ [] = mapM_ `flip` fs $ \v -> do
         reg_nil <- fresh
         emit $ B.LitNil reg_nil
-        mapM_ (\f -> emit $ f reg_nil) fs
+        mapM_ (\f -> f reg_nil) fs
 
     go fs [reg_ret] [PrefixExp (PEFunCall fc)] = do
         forM_ (zip [1..] fs) $ \(idx, f) -> do
@@ -151,7 +155,7 @@ compileAssign vs es = do
             reg_tmp1 <- fresh
             emit $ B.LitInt reg_idx $ Text.pack $ show idx
             emit $ B.GetTable reg_tmp1 reg_ret reg_idx
-            emit $ f reg_tmp1
+            f reg_tmp1
     go fs [reg_varargs] [Vararg] = do
         forM_ (zip [1..] fs) $ \(idx, f) -> do
             reg_idx <- fresh
@@ -159,20 +163,30 @@ compileAssign vs es = do
             
             reg_val <- fresh
             emit $ B.GetTable reg_val reg_varargs reg_idx
-            emit $ f reg_val
+            f reg_val
+
+    go (f:fs) (reg_fc:regs) (e@(PrefixExp (PEFunCall _)):es) = do
+        reg_one <- fresh
+        emit $ B.LitInt reg_one "1"
+        reg_val <- fresh
+        emit $ B.GetTable reg_val reg_fc reg_one
+        f reg_val
+        go fs regs es
+        
     go (f:fs) (reg_varargs:regs) (Vararg:es) = do
         reg_one <- fresh
         emit $ B.LitInt reg_one "1"
         reg_val <- fresh
         emit $ B.GetTable reg_val reg_varargs reg_one
-        emit $ f reg_val
+        f reg_val
 
+        go  fs regs es
+
+
+    go (f:fs) (reg_e:regs) (e:es) = do
+        f reg_e
         go fs regs es
 
-
-    go (f:fs) (reg_e:regs) (_:es) = do
-        emit $ f reg_e
-        go fs regs es
         
 compileStat :: Stat -> CompileM ()
 compileStat = \case
@@ -182,12 +196,17 @@ compileStat = \case
     Assign vs es -> compileAssign vs es
 
 
-    LocalAssign names exps -> do
-        forM_ names $ \(Name name) -> do
+    LocalAssign names Nothing ->
+        forM_ names $ \(Name name) ->
             emit $ B.Local name
-        void $ traverse (compileAssign (map VarName names)) exps
 
-    Do block -> compileBlock block
+    LocalAssign names (Just exps) ->
+        void $ compileAssign' (\name -> emit $ B.Local name) (map VarName names) exps
+
+    Do block -> do
+        emit B.Enter
+        compileBlock' False block
+        emit B.Leave
 
     Repeat block expr -> do
         lbl_start <- fresh
@@ -198,9 +217,9 @@ compileStat = \case
         emit $ B.Label lbl_start
         emit $ B.Enter
 
-        compileBlock' block
+        compileBlock' False block
 
-        reg_cond <- compileExp expr
+        reg_cond <- compileExp compilePrefixExp' expr
         reg_tmp1 <- fresh
         emit $ B.Not reg_tmp1 reg_cond
         emit $ B.SetLit local_name reg_tmp1
@@ -216,45 +235,68 @@ compileStat = \case
         lbl_end <- fresh
 
         emit $ B.Label lbl_start
-        c <- compileExp cond
+        c <- compileExp compilePrefixExp' cond
         c' <- fresh
         emit $ B.Not c' c
         emit $ B.JumpT lbl_end c'
 
-        compileBlock block
+        emit $ B.Enter
+        compileBlock' False block
+        emit $ B.Leave
+        emit $ B.Jump lbl_start
+        emit $ B.Label lbl_end
+
+    ForIn names@(Name var1:_) exps block -> do
+        emit $ B.Comment "BEGIN FORIN"
+        let varname_f = VarName $ Name "$_f"
+            varname_s = VarName $ Name "$_s"
+            varname_var = VarName $ Name "$_var"
+
+        lbl_start <- fresh
+        lbl_end <- fresh
+
+
+
+        emit B.Enter
+        reg_nil <- fresh
+        emit $ B.LitNil reg_nil
+
+        forM_ names $ \(Name name) ->
+            emit $ B.Local name
+
+        emit $ B.Comment "local f,s,var = exps"
+        compileAssign [varname_f, varname_s, varname_var] exps
+        emit $ B.Comment "end local f,s,var = exps"
+
+        emit $ B.Label lbl_start
+
+        emit $ B.Comment "local var_1 .. var_n = f(s, var)"
+        compileAssign (map VarName names) [
+            PrefixExp $ PEFunCall $ NormalFunCall (PEVar varname_f) $ Args [PrefixExp $ PEVar varname_s, PrefixExp $ PEVar varname_var]
+            ]
+        emit $ B.Comment "end local var_1 ..."
+
+        reg_var1 <- fresh
+        emit $ B.GetLit reg_var1 var1
+
+        reg_cmp <- fresh
+        emit $ B.EQ reg_cmp reg_var1 reg_nil
+        emit $ B.JumpT lbl_end reg_cmp
+        emit $ B.SetLit "$_var" reg_var1
+
+        emit $ B.Comment "BEGIN BLOCK"
+        emit B.Enter
+        compileBlock' False block
+        emit B.Leave
+        emit $ B.Comment "END BLOCK"
+
 
 
         emit $ B.Jump lbl_start
         emit $ B.Label lbl_end
-
-    -- TODO: this will need refactoring
-    --ForIn [(Name n)] [e1] block -> do
-    --    reg_iterator <- compileExp e1
-    --    reg_nil <- fresh
-    --    lbl_start <- fresh
-    --    lbl_end <- fresh
-
-    --    emit $ B.LitNil reg_nil
-
-    --    -- initial value of n
-    --    reg_tmp1 <- fresh
-    --    reg_params <- fresh
-    --    emit $ B.Table reg_params
-    --    emit $ B.Call reg_tmp1 reg_iterator reg_params
-    --    emit $ B.SetLit n reg_tmp1
-
-
-    --    emit $ B.Label lbl_start
-    --    -- compare with nil
-    --    reg_tmp2 <- fresh
-    --    reg_nilCheck <- fresh
-    --    emit $ B.GetLit reg_tmp2 n
-    --    emit $ B.EQ reg_nilCheck reg_nil reg_tmp2
-    --    emit $ B.JumpT lbl_end reg_nilCheck
-
-    --    compileBlock block
-    --    emit $ B.Jump lbl_start
-    --    emit $ B.Label lbl_end
+        emit B.Leave
+        emit $ B.Comment "END FORIN"
+        
         
 
     ForRange (Name var) start end step block -> do
@@ -264,18 +306,18 @@ compileStat = \case
         zero <- fresh
         emit $ B.LitInt zero "0"
 
-        reg_start <- compileExp start
+        reg_start <- compileExp compilePrefixExp' start
         emit $ B.Local var
         emit $ B.SetLit var reg_start
 
-        reg_end <- compileExp end
+        reg_end <- compileExp compilePrefixExp' end
 
         reg_step <- case step of
             Nothing -> do
                 one <- fresh
                 emit $ B.LitInt one "1"
                 pure one
-            Just e -> compileExp e
+            Just e -> compileExp compilePrefixExp' e
 
         -- initial compare to see if we have to skip the loop alltogether
         -- adapted from lvm.c:forlimit
@@ -292,7 +334,9 @@ compileStat = \case
 
         -- loop body
         emit $ B.Label lbl_start
-        compileBlock block
+        emit B.Enter
+        compileBlock' False block
+        emit B.Leave
     
 
         -- equality check
@@ -395,7 +439,7 @@ compileStat = \case
     compileIfBlock lbl_end (cond, block) = do
         lbl_not <- fresh
         not_cond <- fresh
-        c <- compileExp cond
+        c <- compileExp compilePrefixExp' cond
         emit $ B.Not not_cond c
         emit $ B.JumpT lbl_not not_cond
         compileBlock block
@@ -429,7 +473,7 @@ compileFunCallArgs reg_params args cnt = go cnt args
         emit $ B.SetTable reg_params reg_idx reg_res
         go (succ cnt) xs
     go cnt (x:xs) = do
-        reg_res <- compileExp x
+        reg_res <- compileExp compilePrefixExp' x
         reg_idx <- fresh
         emit $ B.LitInt reg_idx $ Text.pack $ show cnt
         emit $ B.SetTable reg_params reg_idx reg_res
@@ -443,7 +487,7 @@ compileFunArgs cnt reg_table = \case
         reg_idx <- fresh
         emit $ B.LitInt reg_idx $ Text.pack $ show cnt
 
-        reg_litstr <- compileExp $ String txt
+        reg_litstr <- compileExp compilePrefixExp' $ String txt
 
         emit $ B.SetTable reg_table reg_idx reg_litstr
     TableArg tbl_fields -> do
@@ -462,17 +506,16 @@ compileFunArgs' = compileFunArgs 1
 compileFunCall = \case
     NormalFunCall fn funArg -> do
         ret <- fresh
-        fn <- compilePrefixExp fn
+        fn <- compilePrefixExp' fn
         reg_params <- fresh
         emit $ B.Table reg_params
         compileFunArgs' reg_params funArg
-        --compileFunCallArgs reg_params args
         emit $ B.Call ret fn reg_params
         pure ret
 
     MethodCall prefixExp (Name name) funArg -> do
         reg_ret <- fresh
-        reg_obj <- compilePrefixExp prefixExp
+        reg_obj <- compilePrefixExp' prefixExp
 
         reg_name <- fresh
         emit $ B.LitString reg_name name
@@ -487,14 +530,12 @@ compileFunCall = \case
         emit $ B.LitInt reg_one "1"
 
         emit $ B.SetTable reg_params reg_one reg_obj
-        --compileFunCallArgs' reg_params args 2
         compileFunArgs 2 reg_params funArg
 
         emit $ B.Call reg_ret reg_fn reg_params
         pure reg_ret
 
-
-compilePrefixExp = \case
+compilePrefixExp' = \case
     PEVar var -> compileVar var
     PEFunCall funcall -> do
         reg_res <- compileFunCall funcall
@@ -503,7 +544,12 @@ compilePrefixExp = \case
         emit $ B.LitInt reg_one "1"
         emit $ B.GetTable reg_ret reg_res reg_one
         pure reg_ret
-    Paren e -> compileExp e
+    Paren e -> compileExp compilePrefixExp' e
+
+compilePrefixExp = \case
+    PEVar var -> compileVar var
+    PEFunCall funcall -> compileFunCall funcall
+    Paren e -> compileExp compilePrefixExp' e
 
 toByteCodeBinop = \case
     GTE -> B.GTE
@@ -543,17 +589,19 @@ compileFunBody internalName (FunBody args isVararg body) = do
         forM_ (zip [1..] args) $ \(param, Name arg) -> do
             emit $ B.Local arg
             emit $ B.SetLit arg param
-        reg_varargs <- fresh
-        reg_internal_params <- fresh
-        emit $ B.GetLit reg_internal_params "$_params"
-        emit $ B.Local "..."
-        emit $ B.Table reg_varargs
-        emit $ B.GetList normal_args reg_varargs reg_internal_params
-        emit $ B.SetLit "..." reg_varargs
+        when isVararg $ do
+            reg_varargs <- fresh
+            reg_internal_params <- fresh
+            emit $ B.GetLit reg_internal_params "$_params"
+            emit $ B.Local "..."
+            emit $ B.Table reg_varargs
+            emit $ B.GetList normal_args reg_varargs reg_internal_params
+            emit $ B.SetLit "..." reg_varargs
         compileFn body
     addFunction internalName asm
 
-compileExp = \case
+compileExp :: (PrefixExp -> CompileM B.Register) -> Exp -> CompileM B.Register
+compileExp pec = \case
     EFunDef funBody -> do
         x <- fresh
         let internalName = "$_lambda" <> Text.pack (show x)
@@ -586,11 +634,11 @@ compileExp = \case
         emit $ B.GetLit reg_ret "..."
         pure reg_ret
 
-    PrefixExp e -> compilePrefixExp e
+    PrefixExp e -> pec e --compilePrefixExp e
         
     Unop op e -> do
         reg <- fresh
-        x <- compileExp e
+        x <- compileExp compilePrefixExp' e
         emit $ toByteCodeUnop op reg x
         pure reg
 
@@ -598,11 +646,11 @@ compileExp = \case
         reg_ret <- fresh
         reg_not <- fresh
         lbl_end <- fresh
-        reg_a <- compileExp a
+        reg_a <- compileExp compilePrefixExp' a
         emit $ B.Set reg_ret reg_a
         emit $ B.Not reg_not reg_a
         emit $ B.JumpT lbl_end reg_not
-        reg_b <- compileExp b
+        reg_b <- compileExp compilePrefixExp' b
         emit $ B.Set reg_ret reg_b
         emit $ B.Label lbl_end
         pure reg_ret
@@ -610,18 +658,18 @@ compileExp = \case
     Binop Or a b -> do
         lbl_end <- fresh
         reg_ret <- fresh
-        reg_a <- compileExp a
+        reg_a <- compileExp compilePrefixExp' a
         emit $ B.Set reg_ret reg_a
         emit $ B.JumpT lbl_end reg_a
-        reg_b <- compileExp b
+        reg_b <- compileExp compilePrefixExp' b
         emit $ B.Set reg_ret reg_b
         emit $ B.Label lbl_end
         pure reg_ret
 
     Binop binop a b -> do
         reg <- fresh
-        a' <- compileExp a
-        b' <- compileExp b
+        a' <- compileExp compilePrefixExp' a
+        b' <- compileExp compilePrefixExp' b
         emit $ (toByteCodeBinop binop) reg a' b'
         pure reg
 
@@ -645,20 +693,20 @@ compileTableConst reg_tbl = go 1
     go cnt (x:xs) =
       case x of
         ExpField idx val -> do
-            reg_idx <- compileExp idx
-            reg_val <- compileExp val
+            reg_idx <- compileExp compilePrefixExp' idx
+            reg_val <- compileExp compilePrefixExp' val
             emit $ B.SetTable reg_tbl reg_idx reg_val
             go cnt xs
         NamedField (Name idx) val -> do
             reg_idx <- fresh
             emit $ B.LitString reg_idx idx
-            reg_val <- compileExp val
+            reg_val <- compileExp compilePrefixExp' val
             emit $ B.SetTable reg_tbl reg_idx reg_val
             go cnt xs
         Field exp -> do
             reg_idx <- fresh
             emit $ B.LitInt reg_idx $ Text.pack $ show cnt
-            reg_val <- compileExp exp
+            reg_val <- compileExp compilePrefixExp' exp
             emit $ B.SetTable reg_tbl reg_idx reg_val
             go (succ cnt) xs
 
@@ -669,14 +717,14 @@ compileVar = \case
         pure tmp
     Select prefixExp exp -> do
         x <- fresh
-        table <- compilePrefixExp prefixExp
-        index <- compileExp exp
+        table <- compilePrefixExp' prefixExp
+        index <- compileExp compilePrefixExp' exp
         emit $ B.GetTable x table index
         pure x
 
     SelectName prefixExp (Name name) -> do
         x <- fresh
-        table <- compilePrefixExp prefixExp
+        table <- compilePrefixExp' prefixExp
         index <- fresh
         emit $ B.LitString index name
         emit $ B.GetTable x table index

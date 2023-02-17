@@ -2,6 +2,9 @@ import json
 import sys
 import io
 
+def log(*args, **kwargs):
+    print(*args, **kwargs, file=sys.stderr)
+
 class StopInterpreterException(Exception):
     pass
 
@@ -18,23 +21,17 @@ class Context:
         self.parent_call = None
         self.parent = None
         self.chunk_name = chunk_name
+        self.depth = 0
 
     def clone(self):
         ctx = Context(self.ip, self.chunk_name)
         ctx.parent = self.parent
         ctx.parent_call = self.parent_call
+        ctx.depth = self.depth + 1
         return ctx
 
     def __str__(self):
-        return "{}".format(("Context<", "locals:", self.locals, "params:", self.params, "tmps:", self.tmps, "parent:", self.parent, ">"))
-
-    def get(self, name):
-        if name in self.locals:
-            return self.locals[name]
-        elif self.parent is not None:
-            return self.parent.get(name)
-        else:
-            return None
+        return "{}".format(("Context<", "locals:", self.locals, "params:", self.params, "tmps:", self.tmps, "parent:", self.parent, "depth:", self.depth, ">"))
 
     def has_rec(self, name):
         if name in self.locals:
@@ -43,6 +40,12 @@ class Context:
             return self.parent.has_rec(name)
         else:
             return None
+
+    def get(self, name):
+        if ctx := self.has_rec(name):
+            return ctx.locals.get(name)
+        return None
+
     
     def set(self, name, value):
         if ctx := self.has_rec(name):
@@ -81,16 +84,22 @@ class Interpreter:
         except IndexError:
             raise StopInterpreterException()
         ctx.ip += 1
-        #print("executing", ins)
+        log("executing", ins)
         if ins[0] == "fun":
             pass
         elif ins[0] == "getlit":
             if ins[2] == "print":
                 ctx.tmps[ins[1]] = self.print
             elif ins[2] == "$_params":
-                #print("my params are", ctx.tmps)
+                #log("my params are", ctx.tmps)
                 ctx.tmps[ins[1]] = ctx.tmps
             else:
+                #name = ins[2]
+                #log("searching for", name, ctx)
+                #if fctx := ctx.has_rec(name):
+                #    log("found in", fctx)
+                #else:
+                #    log("did not find")
                 ctx.tmps[ins[1]] = ctx.get(ins[2])
         elif ins[0] == "not":
             ctx.tmps[ins[1]] = not ctx.tmps[ins[2]]
@@ -121,17 +130,18 @@ class Interpreter:
             parent_ctx = ctx.parent_call
             if parent_ctx is None:
                 raise StopInterpreterException()
-            #print("returning from chunk", ctx.chunk_name, "to", parent_ctx.chunk_name)
+            #log("returning from chunk", ctx.chunk_name, "to", parent_ctx.chunk_name, "return value", ctx.get("$_ret"))
             parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
             parent_ctx.tmps[ parent_instruction[1] ] = ctx.get("$_ret")
+
         elif ins[0] == "table":
             ctx.tmps[ ins[1] ] = {}
         elif ins[0] == "append":
             offset = ins[ 1 ] -1
             target_tbl = ctx.tmps[ ins[2] ]
             source_tbl = ctx.tmps[ ins[3] ]
-            #print("target", target_tbl)
-            #print("source", source_tbl)
+            #log("target", target_tbl)
+            #log("source", source_tbl)
             for k in source_tbl:
                 target_tbl[ k + offset ] = source_tbl[k]
         elif ins[0] == "getlist":
@@ -139,14 +149,14 @@ class Interpreter:
             target_tbl = ctx.tmps[ ins[2] ]
             source_tbl = ctx.tmps[ ins[3] ]
             i = offset
-            #print("source", source_tbl, "offset", offset)
+            #log("source", source_tbl, "offset", offset)
             while True:
                 if i in source_tbl:
                     target_tbl[ i - offset +1 ] = source_tbl[ i ]
                 else:
                     break
                 i += 1
-            #print("target", target_tbl)
+            #log("target", target_tbl)
             #for k in source_tbl:
             #    target_tbl[ k - off ] = source_tbl[ k ]
         elif ins[0] == "settable":
@@ -158,7 +168,11 @@ class Interpreter:
             new_ctx.parent = ctx
             new_ctx.chunk_name = ins[2]
             ctx.tmps[ ins[1] ] = new_ctx
+            #log("created lambda with closed locals", ctx)
         elif ins[0] == "setlit":
+            name = ins[1]
+            value = ctx.tmps[ins[2]]
+            #log("Setting", name, "to", value, "in ctx", ctx)
             ctx.set(ins[1], ctx.tmps[ins[2]])
         elif ins[0] == "lit":
             ctx.tmps[ins[1]] = ins[2]
@@ -181,13 +195,13 @@ class Interpreter:
                 new_ctx.parent_call = ctx
                 ctx.params = {}
                 self.stack.append(new_ctx)
-                #print("Going from chunk", ctx.chunk_name, "to", new_ctx.chunk_name)
+                #log("Going from chunk", ctx.chunk_name, "to", new_ctx.chunk_name)
         elif ins[0] == "lbl":
             pass
         elif ins[0] == "eq":
             a = ctx.tmps[ins[2]]
             b = ctx.tmps[ins[3]]
-            #print("compaing", a, "and", b, ":", a==b)
+            #log("compaing", a, "and", b, ":", a==b)
             ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] == ctx.tmps[ ins[3] ]
         elif ins[0] == "neq":
             ctx.tmps[ ins[1] ] = ctx.tmps[ ins[2] ] != ctx.tmps[ ins[3] ]
@@ -215,7 +229,10 @@ class Interpreter:
             ctx.tmps[ins[1]] = ctx.tmps[ins[2]][ctx.tmps[ins[3]]]
         elif ins[0] == "dump":
             for x in self.stack:
-                print(x)
+                log(x)
+        elif ins[0] == "comment":
+            #log("COMMENT", ins[1])
+            pass
         else:
             raise Exception("Unknown instruction", ins)
     
@@ -245,4 +262,4 @@ def run_bytecode(pp):
 
 if __name__ == '__main__':
     out, cnt = run_bytecode(json.load(open(sys.argv[1])))
-    print(f"Programm took {cnt} steps to finish")
+    log(f"Programm took {cnt} steps to finish")
