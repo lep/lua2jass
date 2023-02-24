@@ -31,6 +31,12 @@ import qualified Data.Map as Map
 
 import qualified Data.ByteString.Lazy as BL
 
+import qualified Jass.Printer as Jass
+import Data.ByteString.Builder
+import System.IO
+
+import Options.Applicative
+
 type Asm = [Bytecode]
 type S = (Int, Map Text Asm)
 
@@ -73,7 +79,7 @@ local x = do
 compileScript :: Block -> CompileM ()
 compileScript block = do
     (_, asm) <- local $ do
-        emit $ B.Fun 1 "$_main"
+        emit $ B.Fun 0 "$_main"
         compileBlock block
         emit B.Ret
     addFunction "$_main" asm
@@ -739,12 +745,24 @@ compileVar = \case
         pure x
         
 
+data Output = JSON | JASS
+    deriving (Show)
 
-main = do
-    [args] <- getArgs
-    Right ast <- parseFile args
-    --hPrint stderr ast
+options = (,) <$> argument str (metavar "FILE") <*> flag JSON JASS (long "jass")
 
+main = compile =<< execParser opts
+  where
+    opts = info (options <**> helper) mempty
+
+
+compile (fp, mode) = do
+    Right ast <- parseFile fp
     let asm = concatMap snd . Map.toList . runCompiler $ compileScript ast
 
-    BL.putStr $ encode asm
+    case mode of
+        JASS -> do
+            let jasspretty = Jass.pretty $ B.toJassFunction asm
+            putStrLn "// scope Auto"
+            putStrLn "// REQUIRES Ins"
+            hPutBuilder stdout jasspretty
+        JSON -> BL.putStr $ encode asm

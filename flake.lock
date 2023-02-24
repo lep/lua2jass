@@ -30,10 +30,34 @@
         "type": "github"
       }
     },
+    "pjass": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1677181663,
+        "narHash": "sha256-KpXG2rALMUn+EzDyDsl5VJSau16Hol19TLNKurcqCWo=",
+        "owner": "lep",
+        "repo": "pjass",
+        "rev": "ac58f84a23afe447621dff7ffd84e36a92295817",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lep",
+        "repo": "pjass",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "pjass": "pjass"
       }
     }
   },
