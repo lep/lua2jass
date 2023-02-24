@@ -5,7 +5,7 @@
     };
 
     outputs = { self, nixpkgs, flake-utils }:
-	flake-utils.lib.eachSystem (flake-utils.lib.defaultSystems ++ [flake-utils.lib.system.aarch64-darwin]) (system:
+	flake-utils.lib.eachDefaultSystem (system:
             let pkgs = import nixpkgs { inherit system; };
 
                 ghcPackages = pkgs.haskellPackages.ghcWithPackages (ps: [
@@ -31,8 +31,6 @@
 			pkgs.jq
 		    ];
 		};
-            });
+            }
+        );
 }
-
-
-
