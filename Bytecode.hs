@@ -66,7 +66,7 @@ data Bytecode =
     | BOr Register Register Register
     | BXor Register Register Register
     | Fun Label Text
-    | Lambda Register Register Text
+    | Lambda Register Text
     | Local Text
 
     | Comment Text
@@ -121,7 +121,7 @@ instance ToJSON Bytecode where
         BOr a b c -> toJSON ("bor", a, b, c)
         BXor a b c -> toJSON ("bxor", a, b, c)
         Concat a b c -> toJSON ("concat", a, b, c)
-        Lambda r s n -> toJSON ("lambda", r, s, n)
+        Lambda r n -> toJSON ("lambda", r, n)
         Local n -> toJSON ("local", n)
         Table n -> toJSON ("table", n)
         Append idx a b -> toJSON ("append", idx, a, b)
@@ -140,6 +140,9 @@ var = Jass.Var . Jass.SVar
 
 setins i v = Jass.Set (Jass.AVar "_Ins_ins" $ intlit i) $ var v
 setop i o v = Jass.Set (Jass.AVar ("_Ins_op" <> show o) $ intlit i) $ intlit v
+
+neg :: Jass.Ast String Jass.Expr -> Jass.Ast String a
+neg = Jass.Call "-" . pure
 
 toJass :: Bytecode -> (Int -> [Jass.Ast String Jass.Stmt]) -- maybe [Stmt]
 toJass x i =
@@ -187,8 +190,11 @@ toJass x i =
         ]
     Ret -> [ setins i "_Ins_Ret" ]
 
-    Label lbl -> [ Jass.Set (Jass.AVar "_Ins_Labels" $ intlit lbl) (intlit i) ]
-    -- TODO: same for fun
+    Label lbl -> [ Jass.Set (Jass.AVar "_Ins_Labels" (neg $ intlit lbl)) (intlit i) ]
+    Fun lbl name ->
+        [ Jass.Set (Jass.AVar "_Ins_Labels" $ (neg $ intlit lbl)) (intlit i)
+        -- set _Ins_string[-lbl] = name
+        ]
     Jump lbl ->
         [ setins i "_Ins_Jump"
         , setop i 1 lbl

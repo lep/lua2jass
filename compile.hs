@@ -38,7 +38,7 @@ type CompileM = StateT S (Writer Asm)
 --type CompileM = WriterT Asm (State S)
 
 runCompiler :: CompileM a -> Map Text Asm
-runCompiler = snd . fst . runWriter . flip execStateT (1, Map.empty)
+runCompiler = snd . fst . runWriter . flip execStateT (0, Map.empty)
 
 runCompiler' :: S -> CompileM a -> (S, Asm, a)
 runCompiler' initialState m = 
@@ -49,8 +49,12 @@ runCompiler' initialState m =
 emit :: Bytecode -> CompileM ()
 emit = tell . pure
 
+-- pred is important here as varargs and/or normal args get messed up if
+-- becasuse they share the same space. in the future it would probably be
+-- wise to check this out again and make it grow towars positive infinity
+-- instead
 fresh :: CompileM Int
-fresh = modify (first succ) >> gets fst
+fresh = modify (first pred) >> gets fst
 
 addFunction :: Text -> Asm -> CompileM ()
 addFunction fn asm = do
@@ -359,14 +363,14 @@ compileStat = \case
         let internalName = Text.pack $ "$_" <> Text.unpack name <> show x
         compileFunBody x internalName funBody
         emit $ B.Local name
-        emit $ B.Lambda x x internalName
+        emit $ B.Lambda x internalName
         emit $ B.SetLit name x
 
     FunAssign (FunName (Name fnname) [] Nothing) funBody -> do
         let internalName = "$_" <> fnname
         x <- fresh
         compileFunBody x internalName funBody
-        emit $ B.Lambda x x internalName
+        emit $ B.Lambda x internalName
         emit $ B.SetLit fnname x
 
     FunAssign (FunName (Name t) ns Nothing) funBody -> do
@@ -385,7 +389,7 @@ compileStat = \case
 
         x <- fresh
         compileFunBody x internalName' funBody
-        emit $ B.Lambda x x internalName'
+        emit $ B.Lambda x internalName'
         l1 <- fresh
         emit $ B.LitString l1 fnname
         emit $ B.SetTable u l1 x
@@ -397,7 +401,7 @@ compileStat = \case
             funBody = FunBody (Name "self":args) isVararg body
         x <- fresh
         compileFunBody x internalName funBody
-        emit $ B.Lambda x x internalName
+        emit $ B.Lambda x internalName
         y <- fresh
         z <- fresh
         emit $ B.LitString y obj
@@ -420,7 +424,7 @@ compileStat = \case
         let funBody = FunBody (Name "self":args) isVararg body
         x <- fresh
         compileFunBody x internalName' funBody
-        emit $ B.Lambda x x internalName'
+        emit $ B.Lambda x internalName'
 
         l1 <- fresh
         emit $ B.LitString l1 fnname
@@ -462,7 +466,6 @@ compileFunCallArgs reg_params args cnt = go cnt args
         emit $ B.GetLit reg_vararg "..."
         emit $ B.Append cnt reg_params reg_vararg
     go cnt (Vararg:xs) = do
-        traceShowM ("this runs", cnt)
         reg_vararg <- fresh
         emit $ B.GetLit reg_vararg "..."
         reg_one <- fresh
@@ -611,7 +614,7 @@ compileExp pec = \case
         x <- fresh
         let internalName = "$_lambda" <> Text.pack (show x)
         compileFunBody x internalName funBody
-        emit $ B.Lambda x x internalName
+        emit $ B.Lambda x internalName
         pure x
     String x -> do
         reg <- fresh

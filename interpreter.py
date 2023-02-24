@@ -164,7 +164,9 @@ class Interpreter:
         elif ins[0] == "gettable":
             ctx.tmps[ ins[1] ] = ctx.tmps[ins[2]].get( ctx.tmps[ins[3]] )
         elif ins[0] == "lambda":
-            new_ctx = self.call(ins[2])
+            # due to how we compile the internal label is always equal to the
+            # target register
+            new_ctx = self.call(ins[1])
             new_ctx.parent = ctx
             new_ctx.chunk_name = ins[2]
             ctx.tmps[ ins[1] ] = new_ctx
