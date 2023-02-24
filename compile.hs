@@ -38,7 +38,7 @@ type CompileM = StateT S (Writer Asm)
 --type CompileM = WriterT Asm (State S)
 
 runCompiler :: CompileM a -> Map Text Asm
-runCompiler = snd . fst . runWriter . flip execStateT (0, Map.empty)
+runCompiler = snd . fst . runWriter . flip execStateT (1, Map.empty)
 
 runCompiler' :: S -> CompileM a -> (S, Asm, a)
 runCompiler' initialState m = 
@@ -50,7 +50,7 @@ emit :: Bytecode -> CompileM ()
 emit = tell . pure
 
 fresh :: CompileM Int
-fresh = modify (first pred) >> gets fst
+fresh = modify (first succ) >> gets fst
 
 addFunction :: Text -> Asm -> CompileM ()
 addFunction fn asm = do
@@ -69,7 +69,7 @@ local x = do
 compileScript :: Block -> CompileM ()
 compileScript block = do
     (_, asm) <- local $ do
-        emit $ B.Fun "$_main"
+        emit $ B.Fun 1 "$_main"
         compileBlock block
         emit B.Ret
     addFunction "$_main" asm
@@ -247,7 +247,7 @@ compileStat = \case
         emit $ B.Label lbl_end
 
     ForIn names@(Name var1:_) exps block -> do
-        emit $ B.Comment "BEGIN FORIN"
+        --emit $ B.Comment "BEGIN FORIN"
         let varname_f = VarName $ Name "$_f"
             varname_s = VarName $ Name "$_s"
             varname_var = VarName $ Name "$_var"
@@ -264,17 +264,17 @@ compileStat = \case
         forM_ names $ \(Name name) ->
             emit $ B.Local name
 
-        emit $ B.Comment "local f,s,var = exps"
+        --emit $ B.Comment "local f,s,var = exps"
         compileAssign [varname_f, varname_s, varname_var] exps
-        emit $ B.Comment "end local f,s,var = exps"
+        --emit $ B.Comment "end local f,s,var = exps"
 
         emit $ B.Label lbl_start
 
-        emit $ B.Comment "local var_1 .. var_n = f(s, var)"
+        --emit $ B.Comment "local var_1 .. var_n = f(s, var)"
         compileAssign (map VarName names) [
             PrefixExp $ PEFunCall $ NormalFunCall (PEVar varname_f) $ Args [PrefixExp $ PEVar varname_s, PrefixExp $ PEVar varname_var]
             ]
-        emit $ B.Comment "end local var_1 ..."
+        --emit $ B.Comment "end local var_1 ..."
 
         reg_var1 <- fresh
         emit $ B.GetLit reg_var1 var1
@@ -284,18 +284,18 @@ compileStat = \case
         emit $ B.JumpT lbl_end reg_cmp
         emit $ B.SetLit "$_var" reg_var1
 
-        emit $ B.Comment "BEGIN BLOCK"
+        --emit $ B.Comment "BEGIN BLOCK"
         emit B.Enter
         compileBlock' False block
         emit B.Leave
-        emit $ B.Comment "END BLOCK"
+        --emit $ B.Comment "END BLOCK"
 
 
 
         emit $ B.Jump lbl_start
         emit $ B.Label lbl_end
         emit B.Leave
-        emit $ B.Comment "END FORIN"
+        --emit $ B.Comment "END FORIN"
         
         
 
@@ -357,16 +357,16 @@ compileStat = \case
     LocalFunAssign (Name name) funBody -> do
         x <- fresh
         let internalName = Text.pack $ "$_" <> Text.unpack name <> show x
-        compileFunBody internalName funBody
+        compileFunBody x internalName funBody
         emit $ B.Local name
-        emit $ B.Lambda x internalName
+        emit $ B.Lambda x x internalName
         emit $ B.SetLit name x
 
     FunAssign (FunName (Name fnname) [] Nothing) funBody -> do
         let internalName = "$_" <> fnname
         x <- fresh
-        compileFunBody internalName funBody
-        emit $ B.Lambda x internalName
+        compileFunBody x internalName funBody
+        emit $ B.Lambda x x internalName
         emit $ B.SetLit fnname x
 
     FunAssign (FunName (Name t) ns Nothing) funBody -> do
@@ -384,8 +384,8 @@ compileStat = \case
         let internalName' = "$_" <> internalName <> "." <> fnname
 
         x <- fresh
-        compileFunBody internalName' funBody
-        emit $ B.Lambda x internalName'
+        compileFunBody x internalName' funBody
+        emit $ B.Lambda x x internalName'
         l1 <- fresh
         emit $ B.LitString l1 fnname
         emit $ B.SetTable u l1 x
@@ -396,8 +396,8 @@ compileStat = \case
         let internalName = "$_" <> fnname <> "_" <> obj
             funBody = FunBody (Name "self":args) isVararg body
         x <- fresh
-        compileFunBody internalName funBody
-        emit $ B.Lambda x internalName
+        compileFunBody x internalName funBody
+        emit $ B.Lambda x x internalName
         y <- fresh
         z <- fresh
         emit $ B.LitString y obj
@@ -419,8 +419,8 @@ compileStat = \case
         let internalName' = "$_" <> internalName <> ":" <> fnname
         let funBody = FunBody (Name "self":args) isVararg body
         x <- fresh
-        compileFunBody internalName' funBody
-        emit $ B.Lambda x internalName'
+        compileFunBody x internalName' funBody
+        emit $ B.Lambda x x internalName'
 
         l1 <- fresh
         emit $ B.LitString l1 fnname
@@ -462,6 +462,7 @@ compileFunCallArgs reg_params args cnt = go cnt args
         emit $ B.GetLit reg_vararg "..."
         emit $ B.Append cnt reg_params reg_vararg
     go cnt (Vararg:xs) = do
+        traceShowM ("this runs", cnt)
         reg_vararg <- fresh
         emit $ B.GetLit reg_vararg "..."
         reg_one <- fresh
@@ -535,6 +536,10 @@ compileFunCall = \case
         emit $ B.Call reg_ret reg_fn reg_params
         pure reg_ret
 
+{--
+    In "normal" expressions we only want the first return value of a function,
+    but in some special cases we need all return values.
+-}
 compilePrefixExp' = \case
     PEVar var -> compileVar var
     PEFunCall funcall -> do
@@ -582,10 +587,10 @@ toByteCodeUnop = \case
     Len -> B.Len
     Complement -> B.Complement
 
-compileFunBody internalName (FunBody args isVararg body) = do
+compileFunBody lbl internalName (FunBody args isVararg body) = do
     let normal_args = succ $ length args
     (_, asm) <- local $ do
-        emit $ B.Fun internalName
+        emit $ B.Fun lbl internalName
         forM_ (zip [1..] args) $ \(param, Name arg) -> do
             emit $ B.Local arg
             emit $ B.SetLit arg param
@@ -605,8 +610,8 @@ compileExp pec = \case
     EFunDef funBody -> do
         x <- fresh
         let internalName = "$_lambda" <> Text.pack (show x)
-        compileFunBody internalName funBody
-        emit $ B.Lambda x internalName
+        compileFunBody x internalName funBody
+        emit $ B.Lambda x x internalName
         pure x
     String x -> do
         reg <- fresh

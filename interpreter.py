@@ -73,7 +73,7 @@ class Interpreter:
         for i in range(len(self.instructions)):
             x = self.instructions[i]
             if x[0] == "fun":
-                self.labels[x[1]] = i
+                self.labels[ x[1] ] = i
             elif x[0] == "lbl":
                 self.labels[ x[1] ] = i
 
@@ -244,7 +244,7 @@ class Interpreter:
 def run_bytecode(pp):
     #pp = json.load(open(sys.argv[1]))
     i = Interpreter(pp)
-    i.stack.append(i.call("$_main"))
+    i.stack.append(i.call(1))# "$_main"))
     ins_count = 0
     while True:
     #for _ in range(32):

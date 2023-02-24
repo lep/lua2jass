@@ -13,6 +13,9 @@ import Data.ByteString.Lazy (ByteString)
 import qualified Data.ByteString.Lazy as BL
 import Data.Maybe
 
+import qualified Jass.Ast as Jass
+import qualified Jass.Printer as Jass
+
 type Register = Int
 type Label = Int
 type Name = Text
@@ -62,8 +65,8 @@ data Bytecode =
     | BAnd Register Register Register
     | BOr Register Register Register
     | BXor Register Register Register
-    | Fun Text
-    | Lambda Register Text
+    | Fun Label Text
+    | Lambda Register Register Text
     | Local Text
 
     | Comment Text
@@ -78,7 +81,7 @@ bla s =
 
 instance ToJSON Bytecode where
     toJSON = \case
-        Fun fn -> toJSON ( "fun", fn)
+        Fun lbl fn -> toJSON ( "fun", lbl, fn)
         Call a b c -> toJSON ("call", a, b, c)
         Enter -> toJSON ["enter"]
         Leave -> toJSON ["leave"]
@@ -118,7 +121,7 @@ instance ToJSON Bytecode where
         BOr a b c -> toJSON ("bor", a, b, c)
         BXor a b c -> toJSON ("bxor", a, b, c)
         Concat a b c -> toJSON ("concat", a, b, c)
-        Lambda r n -> toJSON ("lambda", r, n)
+        Lambda r s n -> toJSON ("lambda", r, s, n)
         Local n -> toJSON ("local", n)
         Table n -> toJSON ("table", n)
         Append idx a b -> toJSON ("append", idx, a, b)
@@ -131,5 +134,203 @@ instance ToJSON Bytecode where
 
 readT :: Read a => Text -> a
 readT = read . unpack
+
+intlit = Jass.Int . show
+var = Jass.Var . Jass.SVar
+
+setins i v = Jass.Set (Jass.AVar "_Ins_ins" $ intlit i) $ var v
+setop i o v = Jass.Set (Jass.AVar ("_Ins_op" <> show o) $ intlit i) $ intlit v
+
+toJass :: Bytecode -> (Int -> [Jass.Ast String Jass.Stmt]) -- maybe [Stmt]
+toJass x i =
+  case x of
+    Call a b c ->
+        [ setins i "_Ins_Call"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Enter -> [ setins i "_Ins_Enter" ]
+    Leave -> [ setins i "_Ins_Leave" ]
+    Set a b ->
+        [ setins i "_Ins_Set"
+        , setop i 1 a
+        , setop i 2 b
+        ]
+    Table a ->
+        [ setins i "_Ins_Table"
+        , setop i 1 a
+        ]
+    Append a b c ->
+        [ setins i "_Ins_Append"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    GetList a b c ->
+        [ setins i "_Ins_GetList"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    SetTable a b c ->
+        [ setins i "_Ins_SetTable"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    GetTable a b c ->
+        [ setins i "_Ins_GetTable"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Ret -> [ setins i "_Ins_Ret" ]
+
+    Label lbl -> [ Jass.Set (Jass.AVar "_Ins_Labels" $ intlit lbl) (intlit i) ]
+    -- TODO: same for fun
+    Jump lbl ->
+        [ setins i "_Ins_Jump"
+        , setop i 1 lbl
+        ]
+    JumpT lbl reg ->
+        [ setins i "_Ins_JumpT"
+        , setop i 1 lbl
+        , setop i 2 reg
+        ]
+    Not a b ->
+        [ setins i "_Ins_Not"
+        , setop i 1 a
+        , setop i 2 b
+        ]
+    Neg a b ->
+        [ setins i "_Ins_Neg"
+        , setop i 1 a
+        , setop i 2 b
+        ]
+    Len a b ->
+        [ setins i "_Ins_Len"
+        , setop i 1 a
+        , setop i 2 b
+        ]
+    Complement a b ->
+        [ setins i "_Ins_Complement"
+        , setop i 1 a
+        , setop i 2 b
+        ]
+    GTE a b c ->
+        [ setins i "_Ins_GTE"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    GT a b c ->
+        [ setins i "_Ins_GT"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    LTE a b c ->
+        [ setins i "_Ins_LTE"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    LT a b c ->
+        [ setins i "_Ins_LT"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    EQ a b c ->
+        [ setins i "_Ins_EQ"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    NEQ a b c ->
+        [ setins i "_Ins_NEQ"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Mul a b c ->
+        [ setins i "_Ins_Mul"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Div a b c ->
+        [ setins i "_Ins_Div"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Add a b c ->
+        [ setins i "_Ins_Add"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Sub a b c ->
+        [ setins i "_Ins_Sub"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Exp a b c ->
+        [ setins i "_Ins_Exp"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Mod a b c ->
+        [ setins i "_Ins_Mod"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    Concat a b c ->
+        [ setins i "_Ins_Concat"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    IDiv a b c ->
+        [ setins i "_Ins_IDiv"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    ShiftL a b c ->
+        [ setins i "_Ins_ShiftL"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    ShiftR a b c ->
+        [ setins i "_Ins_ShiftR"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    BAnd a b c ->
+        [ setins i "_Ins_BAnd"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    BOr a b c ->
+        [ setins i "_Ins_BOr"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
+    BXor a b c ->
+        [ setins i "_Ins_BXor"
+        , setop i 1 a
+        , setop i 2 b
+        , setop i 3 c
+        ]
 
 
