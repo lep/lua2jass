@@ -189,7 +189,5 @@ endfunction
 function _settable takes integer tbl, integer k, integer v returns nothing
     // only integer indizes for now.
     // this will require a LuaTable struct in the future
-    //call Print#_print("Value#_settable("+I2S(tbl)+","+I2S(k)+","+I2S(v)+")")
-    //call Print#_print("  - key is "+ I2S(_Int[k]))
     call Table#_set( _Int[tbl], _Int[k], v )
 endfunction

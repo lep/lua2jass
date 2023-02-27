@@ -61,6 +61,13 @@ function _NEQ takes integer ctx, integer ip returns nothing
     call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
 endfunction
 
+function _LTE takes integer ctx, integer ip returns nothing
+    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer v3 = Value#_lte(v1, v2)
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+endfunction
+
 function _Table takes integer ctx, integer ip returns nothing
     // Probably gonna create a LuaTable struct at some point
     call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_table() )
@@ -68,13 +75,13 @@ endfunction
 
 
 function _Jump takes integer ctx, integer ip returns nothing
-    set Context#_ip[ctx] = Ins#_op1[ip]
+    set Context#_ip[ctx] = Ins#_Labels[ - Ins#_op1[ip] ]
 endfunction
 
 function _JumpT takes integer ctx, integer ip returns nothing
     local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     if Value#_truthy(v1) then
-	set Context#_ip[ctx] = Ins#_op1[ip]
+	set Context#_ip[ctx] = Ins#_Labels[ - Ins#_op1[ip] ]
     endif
 endfunction
 
@@ -103,7 +110,6 @@ function _GetLit takes integer ctx, integer ip returns nothing
     local integer reg = Ins#_op1[ip]
     local string name = Ins#_string[ip]
     local integer v = Context#_get( ctx, name )
-    //call Print#_print("from name "+name+" got value "+I2S(v)+" of type "+I2S(Value#_Type[v])+" and gonna store it in reg "+I2S(reg))
     call Table#_set( Context#_tmps[ctx], reg, v)
 endfunction
 
@@ -173,9 +179,6 @@ function _SetTable takes integer ctx, integer ip returns nothing
     local integer value_tbl = Table#_get( Context#_tmps[ctx], Ins#_op1[ip] )
     local integer value_key = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
     local integer value_val = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
-    //call Print#_print("Interpreter#_SetTable(...)")
-    //call Print#_print("  - "+I2S(Ins#_op1[ip])+","+I2S(Ins#_op2[ip])+","+I2S(Ins#_op3[ip]))
-    //call Print#_print("  - "+I2S(value_tbl)+","+I2S(value_key)+","+I2S(value_val))
 
     call Value#_settable(value_tbl, value_key, value_val)
 endfunction
@@ -192,7 +195,7 @@ function _step takes integer interpreter returns boolean
 
     set Context#_ip[ctx] = Context#_ip[ctx] + 1
     
-    call Print#_print("Executing instruction "+ Ins#_Name[ins])
+    //call Print#_print("Executing instruction "+ Ins#_Name[ins])
 
     // TODO: binsearch
     if ins == Ins#_Not then
@@ -209,6 +212,8 @@ function _step takes integer interpreter returns boolean
 	call _EQ(ctx, ip)
     elseif ins == Ins#_NEQ then
 	call _NEQ(ctx, ip)
+    elseif ins == Ins#_LTE then
+	call _LTE(ctx, ip)
     elseif ins == Ins#_Table then
 	call _Table(ctx, ip)
     elseif ins == Ins#_Jump then
@@ -219,6 +224,8 @@ function _step takes integer interpreter returns boolean
 	call _JumpT(ctx, ip)
     elseif ins == Ins#_Enter then
 	call _Enter(ctx, interpreter)
+    elseif ins == Ins#_Leave then
+	call _Leave(ctx, interpreter)
     elseif ins == Ins#_Local then
 	call _Local(ctx, ip)
     elseif ins == Ins#_Lambda then
@@ -237,6 +244,8 @@ function _step takes integer interpreter returns boolean
 	call _Ret(ctx, ip)
     elseif ins == Ins#_SetTable then
 	call _SetTable(ctx, ip)
+    elseif ins == Ins#_Label then
+	// NOP
     else
 	call Print#_print("OP not implemented "+I2S(ins))
     endif
@@ -250,7 +259,6 @@ function _debug_start_main takes nothing returns nothing
 
     call Context#_init(ctx)
     set Context#_ip[ctx] = Ins#_Labels[0]
-    //call Print#_print("Starting at ip "+I2S(Ins#_Labels[0]))
 
     call Builtins#_register_builtin(ctx, "print", 1)
 

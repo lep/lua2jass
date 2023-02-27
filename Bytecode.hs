@@ -228,7 +228,10 @@ toJass x i =
         ]
     Ret -> [ setins i "Ins#_Ret" ]
 
-    Label lbl -> [ Jass.Set (Jass.AVar "Ins#_Labels" (neg $ intlit lbl)) (intlit $ succ i) ]
+    Label lbl ->
+        [ Jass.Set (Jass.AVar "Ins#_Labels" (neg $ intlit lbl)) (intlit $ succ i)
+        , setins i "Ins#_Label"
+        ]
     Fun lbl name ->
         [ Jass.Set (Jass.AVar "Ins#_Labels" $ (neg $ intlit lbl)) (intlit $ succ i)
         , setstr i name
