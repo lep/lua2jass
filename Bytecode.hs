@@ -172,7 +172,8 @@ toJass x i =
         ]
     LitInt a t ->
         [ setins i "Ins#_LitInt"
-        , setop i 1 $ read $ Text.unpack t
+        , setop i 1 a
+        , setop i 2 $ read $ Text.unpack t
         ]
     LitNil a -> [ setins i "Ins#_LitNil" ]
     Lambda a t ->

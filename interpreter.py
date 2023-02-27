@@ -246,7 +246,7 @@ class Interpreter:
 def run_bytecode(pp):
     #pp = json.load(open(sys.argv[1]))
     i = Interpreter(pp)
-    i.stack.append(i.call(1))# "$_main"))
+    i.stack.append(i.call(0))# "$_main"))
     ins_count = 0
     while True:
     #for _ in range(32):
