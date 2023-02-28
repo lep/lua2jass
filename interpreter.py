@@ -90,7 +90,7 @@ class Interpreter:
         elif ins[0] == "getlit":
             if ins[2] == "print":
                 ctx.tmps[ins[1]] = self.print
-            elif ins[2] == "$_params":
+            elif ins[2] == "$params":
                 #log("my params are", ctx.tmps)
                 ctx.tmps[ins[1]] = ctx.tmps
             else:
@@ -130,9 +130,9 @@ class Interpreter:
             parent_ctx = ctx.parent_call
             if parent_ctx is None:
                 raise StopInterpreterException()
-            #log("returning from chunk", ctx.chunk_name, "to", parent_ctx.chunk_name, "return value", ctx.get("$_ret"))
+            #log("returning from chunk", ctx.chunk_name, "to", parent_ctx.chunk_name, "return value", ctx.get("$ret"))
             parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
-            parent_ctx.tmps[ parent_instruction[1] ] = ctx.get("$_ret")
+            parent_ctx.tmps[ parent_instruction[1] ] = ctx.get("$ret")
 
         elif ins[0] == "table":
             ctx.tmps[ ins[1] ] = {}
@@ -143,6 +143,7 @@ class Interpreter:
             #log("target", target_tbl)
             #log("source", source_tbl)
             for k in source_tbl:
+                print("append key = ", k)
                 target_tbl[ k + offset ] = source_tbl[k]
         elif ins[0] == "getlist":
             offset = ins[1]
@@ -246,7 +247,7 @@ class Interpreter:
 def run_bytecode(pp):
     #pp = json.load(open(sys.argv[1]))
     i = Interpreter(pp)
-    i.stack.append(i.call(0))# "$_main"))
+    i.stack.append(i.call(0))# "$main"))
     ins_count = 0
     while True:
     #for _ in range(32):

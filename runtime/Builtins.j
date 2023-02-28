@@ -5,6 +5,7 @@ function _print takes integer tbl, integer reg_res, integer ctx returns nothing
     local string r = ""
     local integer k = 1
     local integer v
+    //call Print#_print("_print("+I2S(tbl)+")")
 
     loop
         if Table#_has( tbl, k ) then

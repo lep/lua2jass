@@ -183,6 +183,37 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
     endif
 endfunction
 
+function _Append takes integer ctx, integer ip returns nothing
+    // let's try something different:
+    // instead of doing the bulk in a Value# function we do the typechecking
+    // and extraction in here and see how that feels
+    local integer offset = Ins#_op1[ip] - 1
+
+    local integer val_target = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer val_source = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+
+    local integer tbl_target = Value#_Int[val_target]
+    local integer tbl_source = Value#_Int[val_source]
+
+    local integer k = 1
+
+    if Value#_Type[val_target] != Types#_Table then
+	call Print#_error("Target table not of type table but "+I2S(Value#_Type[val_target]))
+    endif
+    if Value#_Type[val_source] != Types#_Table then
+	call Print#_error("Target table not of type table but "+I2S(Value#_Type[val_source]))
+    endif
+
+    loop
+	if Table#_has( tbl_source, k ) then
+	    call Table#_set( tbl_target, k + offset, Table#_get( tbl_source, k ))
+	else
+	    exitwhen true
+	endif
+	set k = k +1
+    endloop
+endfunction
+
 function _Ret takes integer ctx, integer interpreter returns nothing
     local integer parent_ctx = Context#_parent_call[ctx]
     local integer parent_ip
@@ -295,6 +326,8 @@ function _step takes integer interpreter returns boolean
 	call _SetTable(ctx, ip)
     elseif ins == Ins#_GetTable then
 	call _GetTable(ctx, ip)
+    elseif ins == Ins#_Append then
+	call _Append(ctx, ip)
     elseif ins == Ins#_Label then
 	// NOP
     else
