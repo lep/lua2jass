@@ -9,6 +9,9 @@ OUT	+= $(patsubst auto/%, out/%, $(AUTO))
 .PHONY: XXX
 .PHONY: check
 
+auto/Auto.j: test.lua
+	runhaskell compile.hs test.lua --jass > auto/Auto.j
+
 out/%.j: runtime/%.j
 	bash process.sh $^ $@ lua_ 2>/dev/null
 

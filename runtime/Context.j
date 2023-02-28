@@ -36,7 +36,7 @@ function _clone takes integer ctx returns integer
     call _init(new_ctx)
     set _ip[new_ctx] = _ip[ctx]
     set _chunk_name[new_ctx] = _chunk_name[ctx]
-    set _parent[new_ctx] = ctx
+    set _parent[new_ctx] = _parent[ctx]
     set _parent_call[new_ctx] = _parent_call[ctx]
     return new_ctx
 endfunction

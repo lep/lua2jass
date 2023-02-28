@@ -4,13 +4,13 @@ function print_hello takes nothing returns nothing
 endfunction
 
 function reload_script takes nothing returns nothing
-    call BJDebugMsg("Reloading script...")
+    call BJDebugMsg("|c00ff0000Reloading script...|r")
     call ExecuteFunc("JHCR_Init_parse")
 endfunction
 
 
 function start_interpreter takes nothing returns nothing
-    call BJDebugMsg("Starting interpreter...")
+    call BJDebugMsg("|c0000ff00Starting interpreter...|r")
     call lua_Interpreter_debug_start_main()
 endfunction
 

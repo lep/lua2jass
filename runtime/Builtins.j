@@ -15,12 +15,15 @@ function _print takes integer tbl, integer reg_res, integer ctx returns nothing
             exitwhen true
         endif
     endloop
-    call Print#_print(r)
+    call Print#_print("|c00aaaaff"+r+"|r")
 endfunction
 
 function _dispatch_builtin takes integer value, integer params, integer ctx, integer reg_res returns nothing
     local integer tbl = Value#_Int[params]
     local string name = Value#_String[value]
+    //call Print#_print("_dispatch_builtin("+I2S(value)+","+I2S(params)+","+I2S(ctx)+","+I2S(reg_res)+")")
+    //call Print#_print("  - tbl = "+I2S(tbl))
+    //call Print#_print("  - name = "+name)
     if name == "print" then
         call _print(tbl, reg_res, ctx)
     else

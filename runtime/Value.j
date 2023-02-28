@@ -44,6 +44,7 @@ function _add takes integer a, integer b returns integer
     local integer new = _alloc()
     set _Type[new] = Types#_Int
     set _Int[new] = _Int[a] + _Int[b]
+    //call Print#_print("_add("+I2S(_Int[a])+","+I2S(_Int[b])+")")
     return new
 endfunction
 
@@ -189,5 +190,23 @@ endfunction
 function _settable takes integer tbl, integer k, integer v returns nothing
     // only integer indizes for now.
     // this will require a LuaTable struct in the future
+    if _Type[tbl] != Types#_Table then
+	call Print#_error("Expected table but got "+I2S(_Type[tbl]))
+    endif
+    //call Print#_print("_settable("+I2S(tbl)+","+I2S(k)+","+I2S(v)+")")
+    //call Print#_print("  - tbl = "+I2S(_Int[tbl]))
+    //call Print#_print("  - k = "+I2S(_Int[k]))
     call Table#_set( _Int[tbl], _Int[k], v )
+endfunction
+
+// @noalloc
+function _gettable takes integer tbl, integer k returns integer
+    local integer v = Table#_get( _Int[tbl], _Int[k] )
+    // only integer indizes for now.
+    //call Print#_print("_gettable("+I2S(tbl)+","+I2S(k)+")")
+    //call Print#_print("  - tbl = "+I2S(_Int[tbl]))
+    //call Print#_print("  - k = "+I2S(_Int[k]))
+    //call Print#_print("  - v = "+I2S(_Int[v]))
+
+    return v
 endfunction

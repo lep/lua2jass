@@ -2,7 +2,7 @@
 // REQUIRES
 
 globals
-    constant integer _Call      =  1
+    constant integer _Call      =  1 // XXX
     constant integer _Enter     =  2 // XXX
     constant integer _Leave     =  3 // XXX
     constant integer _GetLit    =  4 // XXX
@@ -18,7 +18,7 @@ globals
     constant integer _Append    = 14
     constant integer _GetList   = 15
     constant integer _SetTable  = 16 // XXX
-    constant integer _GetTable  = 17
+    constant integer _GetTable  = 17 // XXX
     constant integer _Ret       = 18 // XXX
     constant integer _Label     = 19 // XXX
     constant integer _Jump      = 20 // XXX

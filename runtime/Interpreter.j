@@ -127,31 +127,55 @@ endfunction
 
 function _Enter takes integer ctx, integer interpreter returns nothing
     local integer new_ctx = Context#_clone(ctx)
-    set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
+    local integer head = _stack_top[interpreter]
+    //call Print#_print("Enter")
+    set Context#_parent[new_ctx] = ctx
+    // stack.push(new_ctx)
+    set _stack_top[interpreter] = List#_cons(head)
     set _ctx[_stack_top[interpreter]] = new_ctx
+    //call Print#_print("  - "+I2S(ctx)+" --> "+I2S(new_ctx))
 endfunction
 
 function _Leave takes integer ctx, integer interpreter returns nothing
     local integer head = _stack_top[interpreter]
     local integer old_ctx = _ctx[head]
     local integer new_old_ctx
+    //call Print#_print("Leave")
+    // stack.pop()
     set _stack_top[interpreter] = List#_next[head]
     set new_old_ctx = _ctx[_stack_top[interpreter]]
     set Context#_ip[new_old_ctx] = Context#_ip[old_ctx]
-    call List#_free(head)
+    //call List#_free(head)
+    //call Print#_print("  - "+I2S(ctx)+"("+I2S(old_ctx)+") --> "+I2S(new_old_ctx))
+
     //call Context#_free(old_ctx) // this is done via GC?
 endfunction
 
-function _Call takes integer ctx, integer ip returns nothing
+function _Call takes integer ctx, integer ip, integer interpreter returns nothing
     local integer reg_res = Ins#_op1[ip]
     local integer reg_fn = Ins#_op2[ip]
     local integer reg_params = Ins#_op3[ip]
     local integer fn = Table#_get( Context#_tmps[ctx], reg_fn)
     local integer ty = Value#_Type[fn]
-    local integer params = Table#_get( Context#_tmps[ctx], reg_params )
+    local integer params = Table#_get( Context#_tmps[ctx], reg_params ) // params : Value
+
+    local integer head = _stack_top[interpreter]
+
+
+    local integer new_ctx
+
+    //call Print#_print("Call")
 
     if ty == Types#_Lambda then
-	call Print#_print("Cannot call lambda yet")
+	set new_ctx = Context#_clone(Value#_Int[fn])
+	 // this leaks new_ctx freshly allocated _tmps
+	set Context#_tmps[new_ctx] = Value#_Int[params] // this might need some refactoring
+	set Context#_parent_call[new_ctx] = ctx
+
+	// stack.push(new_ctx)
+	set _stack_top[interpreter] = List#_cons(head)
+	set _ctx[_stack_top[interpreter]] = new_ctx
+	//call Print#_print("  - "+I2S(ctx)+" --> "+I2S(new_ctx))
     elseif ty == Types#_BuiltInFunction then
 	call Builtins#_dispatch_builtin(fn, params, ctx, reg_res)
     else
@@ -163,17 +187,39 @@ function _Ret takes integer ctx, integer interpreter returns nothing
     local integer parent_ctx = Context#_parent_call[ctx]
     local integer parent_ip
     local integer return_value
+    local integer head = _stack_top[interpreter]
+    local integer parent_ctx_check
+    //call Print#_print("Ret")
+    //call Print#_print("  - head "+I2S(head))
 
-    set _stack_top[interpreter] = List#_next[_stack_top[interpreter]]
+    // stack.pop()
+    set _stack_top[interpreter] = List#_next[head]
+    set parent_ctx_check = _ctx[_stack_top[interpreter]]
+    //call List#_free(head)
     if parent_ctx == 0 then
+	//call Print#_print("  - "+ I2S(ctx)+" --> "+I2S(0))
+	call I2S(1 / 0) // TODO
 	return
     endif
-    set parent_ip = Context#_ip[parent_ctx]
-    set return_value = Context#_get( ctx, "$_ret" )
+    set parent_ip = Context#_ip[parent_ctx] - 1
+    set return_value = Context#_get( ctx, "$ret" )
+    //call Builtins#_print(Value#_Int[return_value], 0, 0)
+    //call Print#_print("  - "+ I2S(ctx)+" --> "+I2S(parent_ctx)+" ("+I2S(parent_ctx_check)+")")
+    //call Print#_print("  - parent_ip = "+ I2S(parent_ip))
+    //call Print#_print("  - return_value = "+ I2S(Value#_Int[return_value]))
 
     call Table#_set( Context#_tmps[parent_ctx], Ins#_op1[parent_ip], return_value )
 endfunction
 
+function _GetTable takes integer ctx, integer ip returns nothing
+    local integer reg	    = Ins#_op1[ip]
+    local integer value_tbl = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer value_key = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+
+    call Table#_set( Context#_tmps[ctx], reg, Value#_gettable( value_tbl, value_key))
+
+
+endfunction
 
 function _SetTable takes integer ctx, integer ip returns nothing
     local integer value_tbl = Table#_get( Context#_tmps[ctx], Ins#_op1[ip] )
@@ -189,7 +235,10 @@ function _step takes integer interpreter returns boolean
     local integer ip = Context#_ip[ctx]
     local integer ins = Ins#_ins[ip]
 
+    //call Print#_print("_step ("+I2S(ctx)+")")
+
     if ctx == 0 or ip == 0 or ins == 0 then
+	//call Print#_print("out of gas")
 	return false
     endif
 
@@ -239,11 +288,13 @@ function _step takes integer interpreter returns boolean
     elseif ins == Ins#_LitInt then
 	call _LitInt(ctx, ip)
     elseif ins == Ins#_Call then
-	call _Call(ctx, ip)
+	call _Call(ctx, ip, interpreter)
     elseif ins == Ins#_Ret then
-	call _Ret(ctx, ip)
+	call _Ret(ctx, interpreter)
     elseif ins == Ins#_SetTable then
 	call _SetTable(ctx, ip)
+    elseif ins == Ins#_GetTable then
+	call _GetTable(ctx, ip)
     elseif ins == Ins#_Label then
 	// NOP
     else
