@@ -143,7 +143,6 @@ class Interpreter:
             #log("target", target_tbl)
             #log("source", source_tbl)
             for k in source_tbl:
-                print("append key = ", k)
                 target_tbl[ k + offset ] = source_tbl[k]
         elif ins[0] == "getlist":
             offset = ins[1]
