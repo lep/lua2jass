@@ -27,6 +27,7 @@ war3map.j: $(OUT) scaffold.j main.j
 
 
 start-wc3: war3map.j
+	rm -f ~/Library/Application\ Support/Blizzard/Warcraft\ III/CustomMapData/JHCR*.txt
 	jhcr-start "$<"
 
 update-wc3: war3map.j

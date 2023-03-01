@@ -13,10 +13,23 @@ globals
 endglobals
 #include "alloc.j"
 
+
 function _Not takes integer ctx, integer ip returns nothing
     local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer v2 = Value#_not(v1)
     call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v2)
+endfunction
+
+function _Complement takes integer ctx, integer ip returns nothing
+    local integer v1 = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer v2 = Value#_complement(v1)
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], v2)
+endfunction
+
+function _Neg takes integer ctx, integer ip returns nothing
+    local integer v1 = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer v2 = Value#_neg(v1)
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], v2)
 endfunction
 
 function _Add takes integer ctx, integer ip returns nothing
@@ -61,10 +74,31 @@ function _NEQ takes integer ctx, integer ip returns nothing
     call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
 endfunction
 
+function _GTE takes integer ctx, integer ip returns nothing
+    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer v3 = Value#_gte(v1, v2)
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+endfunction
+
+function _GT takes integer ctx, integer ip returns nothing
+    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer v3 = Value#_gt(v1, v2)
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+endfunction
+
 function _LTE takes integer ctx, integer ip returns nothing
     local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer v3 = Value#_lte(v1, v2)
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+endfunction
+
+function _LT takes integer ctx, integer ip returns nothing
+    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer v3 = Value#_lt(v1, v2)
     call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
 endfunction
 
@@ -109,8 +143,19 @@ endfunction
 function _GetLit takes integer ctx, integer ip returns nothing
     local integer reg = Ins#_op1[ip]
     local string name = Ins#_string[ip]
-    local integer v = Context#_get( ctx, name )
-    call Table#_set( Context#_tmps[ctx], reg, v)
+    local integer v
+    //call Print#_print("_GetLit")
+    //call Print#_print("  - name = "+name)
+    if name == "$params" then
+	set v = Value#_table()
+	set Value#_Int[v] = Context#_tmps[ctx]
+	//call Print#_print("  - $params[1] = "+Value#_tostring(Table#_get( Context#_tmps[ctx], 1 )))
+	//call Builtins#_print(Context#_tmps[ctx], 0, 0)
+	call Table#_set( Context#_tmps[ctx], reg, v)
+    else
+	set v = Context#_get( ctx, name )
+	call Table#_set( Context#_tmps[ctx], reg, v)
+    endif
 endfunction
 
 function _LitString takes integer ctx, integer ip returns nothing
@@ -122,6 +167,18 @@ endfunction
 function _LitInt takes integer ctx, integer ip returns nothing
     local integer reg = Ins#_op1[ip]
     local integer value = Value#_litint( Ins#_op2[ip] )
+    call Table#_set( Context#_tmps[ctx], reg, value )
+endfunction
+
+function _LitFloat takes integer ctx, integer ip returns nothing
+    local integer reg = Ins#_op1[ip]
+    local integer value = Value#_litfloat( Ins#_real[ip] )
+    call Table#_set( Context#_tmps[ctx], reg, value )
+endfunction
+
+function _LitBool takes integer ctx, integer ip returns nothing
+    local integer reg = Ins#_op1[ip]
+    local integer value = Value#_litbool( Ins#_bool[ip] )
     call Table#_set( Context#_tmps[ctx], reg, value )
 endfunction
 
@@ -183,6 +240,51 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
     endif
 endfunction
 
+function _Len takes integer ctx, integer ip returns nothing
+    local integer reg_target = Ins#_op1[ip]
+    local integer val_source = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer val_res    = Value#_len( val_source )
+
+    call Table#_set( Context#_tmps[ctx], reg_target, val_res )
+endfunction
+
+function _GetList takes integer ctx, integer ip returns nothing
+    local integer offset = Ins#_op1[ip]
+    local integer val_target = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer val_source = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+
+    local integer tbl_target = Value#_Int[val_target]
+    local integer tbl_source = Value#_Int[val_source]
+
+    local integer k = offset
+    local integer v
+
+    //call Print#_print("_GetList")
+    //call Print#_print("  - offset = "+I2S(offset))
+
+    if Value#_Type[val_target] != Types#_Table then
+	call Print#_error("Target table not of type table but "+I2S(Value#_Type[val_target]))
+    endif
+    if Value#_Type[val_source] != Types#_Table then
+	call Print#_error("Target table not of type table but "+I2S(Value#_Type[val_source]))
+    endif
+
+    //call Builtins#_print(tbl_source, 0, 0)
+    
+    loop
+	//call Print#_print("  - checking key k = "+ I2S(k))
+	if Table#_has( tbl_source, k ) then
+	    //call Print#_print("  - table has key k = "+I2S(k))
+	    set v = Table#_get( tbl_source, k )
+	    //call Print#_print("  - "+Value#_tostring(v))
+	    call Table#_set( tbl_target, k - offset +1, Table#_get( tbl_source, k ))
+	else
+	    exitwhen true
+	endif
+	set k = k +1
+    endloop
+endfunction
+
 function _Append takes integer ctx, integer ip returns nothing
     // let's try something different:
     // instead of doing the bulk in a Value# function we do the typechecking
@@ -242,6 +344,9 @@ function _Ret takes integer ctx, integer interpreter returns nothing
     call Table#_set( Context#_tmps[parent_ctx], Ins#_op1[parent_ip], return_value )
 endfunction
 
+/// I guess in the future when we handle operators by firstly checking for
+/// tables and metatables and such and handle the "native" behaviour in the
+/// Value "struct".
 function _GetTable takes integer ctx, integer ip returns nothing
     local integer reg	    = Ins#_op1[ip]
     local integer value_tbl = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
@@ -275,13 +380,19 @@ function _step takes integer interpreter returns boolean
 
     set Context#_ip[ctx] = Context#_ip[ctx] + 1
     
-    //call Print#_print("Executing instruction "+ Ins#_Name[ins])
+    //call Print#_print("Executing instruction ("+I2S(ip)+") "+ Ins#_Name[ins])
 
     // TODO: binsearch
     if ins == Ins#_Not then
 	call _Not(ctx, ip)
+    elseif ins == Ins#_Complement then
+	call _Complement(ctx, ip)
+    elseif ins == Ins#_Neg then
+	call _Neg(ctx, ip)
     elseif ins == Ins#_Add then
 	call _Add(ctx, ip)
+    elseif ins == Ins#_Len then
+	call _Len(ctx, ip)
     elseif ins == Ins#_Sub then
 	call _Sub(ctx, ip)
     elseif ins == Ins#_Mul then
@@ -294,6 +405,12 @@ function _step takes integer interpreter returns boolean
 	call _NEQ(ctx, ip)
     elseif ins == Ins#_LTE then
 	call _LTE(ctx, ip)
+    elseif ins == Ins#_LT then
+	call _LT(ctx, ip)
+    elseif ins == Ins#_GTE then
+	call _GTE(ctx, ip)
+    elseif ins == Ins#_GT then
+	call _GT(ctx, ip)
     elseif ins == Ins#_Table then
 	call _Table(ctx, ip)
     elseif ins == Ins#_Jump then
@@ -318,6 +435,10 @@ function _step takes integer interpreter returns boolean
 	call _LitString(ctx, ip)
     elseif ins == Ins#_LitInt then
 	call _LitInt(ctx, ip)
+    elseif ins == Ins#_LitFloat then
+	call _LitFloat(ctx, ip)
+    elseif ins == Ins#_LitBool then
+	call _LitBool(ctx, ip)
     elseif ins == Ins#_Call then
 	call _Call(ctx, ip, interpreter)
     elseif ins == Ins#_Ret then
@@ -328,6 +449,8 @@ function _step takes integer interpreter returns boolean
 	call _GetTable(ctx, ip)
     elseif ins == Ins#_Append then
 	call _Append(ctx, ip)
+    elseif ins == Ins#_GetList then
+	call _GetList(ctx, ip)
     elseif ins == Ins#_Label then
 	// NOP
     else
@@ -352,6 +475,7 @@ function _debug_start_main takes nothing returns nothing
     loop
 	exitwhen not _step(interpreter)
     endloop
+    call Print#_print("reached end of loop")
 
     call _free(interpreter)
 endfunction

@@ -9,14 +9,14 @@ globals
     constant integer _Bind      =  5
     constant integer _LitString =  6 // XXX
     constant integer _LitInt    =  7 // XXX
-    constant integer _LitFloat  =  8
-    constant integer _LitBool   =  9
+    constant integer _LitFloat  =  8 // XXX
+    constant integer _LitBool   =  9 // XXX
     constant integer _LitNil    = 10
     constant integer _Set       = 11
     constant integer _SetLit    = 12 // XXX
     constant integer _Table     = 13 // XXX
-    constant integer _Append    = 14
-    constant integer _GetList   = 15
+    constant integer _Append    = 14 // XXX
+    constant integer _GetList   = 15 // XXX
     constant integer _SetTable  = 16 // XXX
     constant integer _GetTable  = 17 // XXX
     constant integer _Ret       = 18 // XXX
@@ -24,13 +24,13 @@ globals
     constant integer _Jump      = 20 // XXX
     constant integer _JumpT     = 21 // XXX
     constant integer _Not       = 22 // XXX
-    constant integer _Neg       = 23
-    constant integer _Len       = 24
-    constant integer _Complement= 25
-    constant integer _GTE       = 26
-    constant integer _GT        = 27
+    constant integer _Neg       = 23 // XXX
+    constant integer _Len       = 24 // XXX
+    constant integer _Complement= 25 // XXX
+    constant integer _GTE       = 26 // XXX
+    constant integer _GT        = 27 // XXX
     constant integer _LTE       = 28 // XXX
-    constant integer _LT        = 29
+    constant integer _LT        = 29 // XXX
     constant integer _EQ        = 30 // XXX
     constant integer _NEQ       = 31 // XXX
     constant integer _Mul       = 32 // XXX
@@ -61,6 +61,7 @@ globals
     
     string array _string
     real array _real
+    boolean array _bool
 
 
     ////

@@ -175,6 +175,11 @@ toJass x i =
         , setop i 1 a
         , setop i 2 $ read $ Text.unpack t
         ]
+    LitFloat a t ->
+        [ setins i "Ins#_LitFloat"
+        , setop i 1 a
+        , Jass.Set (Jass.AVar "Ins#_real" $ intlit i) $ Jass.Real (Text.unpack t)
+        ]
     LitNil a -> [ setins i "Ins#_LitNil" ]
     Lambda a t ->
         [ setins i "Ins#_Lambda"
