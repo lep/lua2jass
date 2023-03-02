@@ -26,6 +26,7 @@ function InitCustomTriggers takes nothing returns nothing
 
     call lua_Auto_init()
     call lua_Ins_init()
+    call lua_Value_init()
     //call TimerStart(CreateTimer(), 1.0, true, function print_hello)
     call CreateUnit(Player(0), 'Hpal', 0, 0, 0)
 

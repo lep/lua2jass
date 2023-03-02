@@ -16,18 +16,19 @@ globals
     // List
     integer array _val
     integer array _key
+
+
+    // constant
+    integer _Nil
 endglobals
 
 #include "alloc.j"
 
-
-// @alloc
-function _not takes integer v returns integer
-    local integer new = _alloc()
-    set _Type[new] = Types#_Bool
-    set _Bool[new] = not _Bool[v]
-    return new
+// @noalloc
+function _litnil takes nothing returns integer
+    return _Nil
 endfunction
+
 
 // @alloc
 function _neg takes integer v returns integer
@@ -110,22 +111,6 @@ function _lte takes integer a, integer b returns integer
     return new
 endfunction
 
-// @alloc
-function _eq takes integer a, integer b returns integer
-    local integer new = _alloc()
-    set _Type[new] = Types#_Bool
-    set _Bool[new] = _Int[a] == _Int[b]
-    return new
-endfunction
-
-// @alloc
-function _neq takes integer a, integer b returns integer
-    local integer new = _alloc()
-    set _Type[new] = Types#_Bool
-    set _Bool[new] = _Int[a] != _Int[b]
-    return new
-endfunction
-
 
 // @alloc
 function _litint takes integer a returns integer
@@ -187,7 +172,14 @@ endfunction
 
 // @noalloc
 function _truthy takes integer a returns boolean
-    return (_Type[a] == Types#_Int and _Int[a] != 0) or (_Type[a] == Types#_String and _String[a] != "") or (_Type[a] == Types#_Bool and _Bool[a])
+    local integer ty = _Type[a]
+    if ty == Types#_Bool then
+	return _Bool[a]
+    elseif ty == Types#_Nil then
+	return false
+    else
+	return true
+    endif
 endfunction
 
 
@@ -196,16 +188,20 @@ function _tostring takes integer v returns string
     local integer ty = _Type[v]
     if ty == Types#_Int then
 	return I2S(_Int[v])
+    elseif ty == Types#_Real then
+	return R2S(_Real[v])
     elseif ty == Types#_String then
 	return _String[v]
     elseif ty == Types#_Lambda then
-	return "Fun@"+ I2S(_Int[v])
+	return "Fun: "+ I2S(_Int[v])
     elseif ty == Types#_BuiltInFunction then
-	return "Native@" + I2S(_Int[v])
+	return "Native: " + I2S(_Int[v])
     elseif ty == Types#_Table then
-	return "Table@" + I2S(_Int[v])
+	return "Table: " + I2S(_Int[v])
+    elseif ty == Types#_Nil then
+	return "nil"
     else
-	return "unknown"
+	return "unknown: " + I2S(_Type[v])
     endif
 endfunction
 
@@ -240,19 +236,14 @@ endfunction
 
 // @noalloc
 function _hash takes integer v returns integer
+    // TODO: use some random seed
     local integer ty = _Type[v]
-    local integer i
     if ty == Types#_String then
 	return StringHash(_String[v])
     elseif ty == Types#_Table then
 	return _Int[v] * 23 + 1337
     elseif ty == Types#_Real then
-	set i = R2I(_Real[v])
-	if _Real[v] == i then
-	    return i * 23 + 5
-	else
-	    return R2I( _Real[v] * 16180.33 )
-	endif
+	return R2I( _Real[v] * 16180.33 )
     elseif ty == Types#_Lambda then
 	return _Int[v]
     elseif ty == Types#_BuiltInFunction then // TODO: we want to use IDs anyway i think
@@ -279,6 +270,10 @@ function _settable takes integer t, integer k, integer v returns nothing
 
     if _Type[t] != Types#_Table then
 	call Print#_error("Expected table but got "+I2S(_Type[t]))
+    endif
+
+    if _Type[v] == Types#_Nil then
+	call Print#_error("table index is nil")
     endif
 
     if ty == Types#_Int then
@@ -335,7 +330,7 @@ function _gettable takes integer v, integer k returns integer
 	    endif
 	    set ls = List#_next[ls]
 	endloop
-	return 0 // TODO: real nil
+	return _Nil
     endif
 endfunction
 
@@ -360,4 +355,34 @@ function _len takes integer v returns integer
 	endloop
     endif
     return Value#_litint(0) // TODO
+endfunction
+
+// @alloc
+function _eq takes integer a, integer b returns integer
+    local integer new = _alloc()
+    set _Type[new] = Types#_Bool
+    set _Bool[new] = _rawequal_noalloc(a, b)
+    return new
+endfunction
+
+// @alloc
+function _neq takes integer a, integer b returns integer
+    local integer new = _alloc()
+    set _Type[new] = Types#_Bool
+    set _Bool[new] = not _rawequal_noalloc(a, b)
+    return new
+endfunction
+
+// @alloc
+function _not takes integer v returns integer
+    local integer new = _alloc()
+    set _Type[new] = Types#_Bool
+    set _Bool[new] = not _truthy(v)
+    return new
+endfunction
+
+
+function _init takes nothing returns nothing
+    set _Nil = _alloc()
+    set _Type[_Nil] = Types#_Nil
 endfunction

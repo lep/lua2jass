@@ -180,7 +180,10 @@ toJass x i =
         , setop i 1 a
         , Jass.Set (Jass.AVar "Ins#_real" $ intlit i) $ Jass.Real (Text.unpack t)
         ]
-    LitNil a -> [ setins i "Ins#_LitNil" ]
+    LitNil a ->
+        [ setins i "Ins#_LitNil"
+        , setop i 1 a
+        ]
     Lambda a t ->
         [ setins i "Ins#_Lambda"
         , setop i 1 a

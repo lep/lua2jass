@@ -140,6 +140,10 @@ function _SetLit takes integer ctx, integer ip returns nothing
     call Context#_set( ctx, name, v)
 endfunction
 
+function _Set takes integer ctx, integer ip returns nothing
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Context#_tmps[ctx], Ins#_op2[ip] ) )
+endfunction
+
 function _GetLit takes integer ctx, integer ip returns nothing
     local integer reg = Ins#_op1[ip]
     local string name = Ins#_string[ip]
@@ -156,6 +160,10 @@ function _GetLit takes integer ctx, integer ip returns nothing
 	set v = Context#_get( ctx, name )
 	call Table#_set( Context#_tmps[ctx], reg, v)
     endif
+endfunction
+
+function _LitNil takes integer ctx, integer ip returns nothing
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 endfunction
 
 function _LitString takes integer ctx, integer ip returns nothing
@@ -184,11 +192,10 @@ endfunction
 
 function _Enter takes integer ctx, integer interpreter returns nothing
     local integer new_ctx = Context#_clone(ctx)
-    local integer head = _stack_top[interpreter]
     //call Print#_print("Enter")
     set Context#_parent[new_ctx] = ctx
     // stack.push(new_ctx)
-    set _stack_top[interpreter] = List#_cons(head)
+    set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
     set _ctx[_stack_top[interpreter]] = new_ctx
     //call Print#_print("  - "+I2S(ctx)+" --> "+I2S(new_ctx))
 endfunction
@@ -216,9 +223,6 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
     local integer ty = Value#_Type[fn]
     local integer params = Table#_get( Context#_tmps[ctx], reg_params ) // params : Value
 
-    local integer head = _stack_top[interpreter]
-
-
     local integer new_ctx
 
     //call Print#_print("Call")
@@ -230,7 +234,7 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
 	set Context#_parent_call[new_ctx] = ctx
 
 	// stack.push(new_ctx)
-	set _stack_top[interpreter] = List#_cons(head)
+	set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
 	set _ctx[_stack_top[interpreter]] = new_ctx
 	//call Print#_print("  - "+I2S(ctx)+" --> "+I2S(new_ctx))
     elseif ty == Types#_BuiltInFunction then
@@ -266,7 +270,7 @@ function _GetList takes integer ctx, integer ip returns nothing
 	call Print#_error("Target table not of type table but "+I2S(Value#_Type[val_target]))
     endif
     if Value#_Type[val_source] != Types#_Table then
-	call Print#_error("Target table not of type table but "+I2S(Value#_Type[val_source]))
+	call Print#_error("Source table not of type table but "+I2S(Value#_Type[val_source]))
     endif
 
     //call Builtins#_print(tbl_source, 0, 0)
@@ -353,8 +357,6 @@ function _GetTable takes integer ctx, integer ip returns nothing
     local integer value_key = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
 
     call Table#_set( Context#_tmps[ctx], reg, Value#_gettable( value_tbl, value_key))
-
-
 endfunction
 
 function _SetTable takes integer ctx, integer ip returns nothing
@@ -429,12 +431,16 @@ function _step takes integer interpreter returns boolean
 	call _Lambda(ctx, ip)
     elseif ins == Ins#_SetLit then
 	call _SetLit(ctx, ip)
+    elseif ins == Ins#_Set then
+	call _Set(ctx, ip)
     elseif ins == Ins#_GetLit then
 	call _GetLit(ctx, ip)
     elseif ins == Ins#_LitString then
 	call _LitString(ctx, ip)
     elseif ins == Ins#_LitInt then
 	call _LitInt(ctx, ip)
+    elseif ins == Ins#_LitNil then
+	call _LitNil(ctx, ip)
     elseif ins == Ins#_LitFloat then
 	call _LitFloat(ctx, ip)
     elseif ins == Ins#_LitBool then
