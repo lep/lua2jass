@@ -20,6 +20,11 @@ globals
 
     // constant
     integer _Nil
+
+
+    //
+
+    boolean _error
 endglobals
 
 #include "alloc.j"
@@ -33,8 +38,16 @@ endfunction
 // @alloc
 function _neg takes integer v returns integer
     local integer new = _alloc()
-    set _Type[new] = Types#_Int
-    set _Int[new] = - _Int[v]
+    local integer ty = _Type[v]
+    if ty == Types#_Int then
+	set _Type[new] = Types#_Int
+	set _Int[new] = - _Int[v]
+    elseif ty == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = - _Real[v]
+    else
+	call Print#_error("_neg: should not happen")
+    endif
     return new
 endfunction
 
@@ -49,65 +62,181 @@ endfunction
 // @alloc
 function _add takes integer a, integer b returns integer
     local integer new = _alloc()
-    set _Type[new] = Types#_Int
-    set _Int[new] = _Int[a] + _Int[b]
-    //call Print#_print("_add("+I2S(_Int[a])+","+I2S(_Int[b])+")")
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Type[new] = Types#_Int
+	set _Int[new] = _Int[a] + _Int[b]
+    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Int[a] + _Real[b]
+    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Real[a] + _Int[b]
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Real[a] + _Real[b]
+    else
+	call Print#_error("_add: Error. Should not happen")
+    endif
     return new
 endfunction
 
 // @alloc
 function _sub takes integer a, integer b returns integer
     local integer new = _alloc()
-    set _Type[new] = Types#_Int
-    set _Int[new] = _Int[a] - _Int[b]
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Type[new] = Types#_Int
+	set _Int[new] = _Int[a] - _Int[b]
+    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Int[a] - _Real[b]
+    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Real[a] - _Int[b]
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Real[a] - _Real[b]
+    else
+	call Print#_error("_sub: Error. Should not happen")
+    endif
     return new
 endfunction
 
 // @alloc
 function _mul takes integer a, integer b returns integer
     local integer new = _alloc()
-    set _Type[new] = Types#_Int
-    set _Int[new] = _Int[a] * _Int[b]
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Type[new] = Types#_Int
+	set _Int[new] = _Int[a] * _Int[b]
+    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Int[a] * _Real[b]
+    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Real[a] * _Int[b]
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Real[a] * _Real[b]
+    else
+	call Print#_error("_mul: Error. Should not happen")
+    endif
     return new
 endfunction
 
 // @alloc
 function _div takes integer a, integer b returns integer
+    // always real division
     local integer new = _alloc()
-    set _Type[new] = Types#_Int
-    set _Int[new] = _Int[a] / _Int[b]
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Type[new] = Types#_Real
+	set _Real[new] = I2R(_Int[a]) / _Int[b]
+    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Int[a] / _Real[b]
+    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Real[a] / _Int[b]
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = _Real[a] / _Real[b]
+    else
+	call Print#_error("_div: Error. Should not happen")
+    endif
     return new
 endfunction
 
 // @alloc
 function _gt takes integer a, integer b returns integer
     local integer new = _alloc()
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
     set _Type[new] = Types#_Bool
-    set _Bool[new] = _Int[a] > _Int[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Bool[new] = _Int[a] > _Int[b]
+    elseif ty_a == Types#_Int and ty_b == Types#_Real then
+	set _Bool[new] = _Int[a] > _Real[b]
+    elseif ty_b == Types#_Int and ty_a == Types#_Real then
+	set _Bool[new] = _Real[a] > _Int[b]
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Bool[new] = _Real[a] > _Real[b]
+    else
+	call Print#_error("_gt: Error. Should not happen")
+    endif
     return new
 endfunction
 
 // @alloc
 function _gte takes integer a, integer b returns integer
     local integer new = _alloc()
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
     set _Type[new] = Types#_Bool
-    set _Bool[new] = _Int[a] >= _Int[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Bool[new] = _Int[a] >= _Int[b]
+    elseif ty_a == Types#_Int and ty_b == Types#_Real then
+	set _Bool[new] = _Int[a] >= _Real[b]
+    elseif ty_b == Types#_Int and ty_a == Types#_Real then
+	set _Bool[new] = _Real[a] >= _Int[b]
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Bool[new] = _Real[a] >= _Real[b]
+    else
+	call Print#_error("_gte: Error. Should not happen")
+    endif
     return new
 endfunction
 
 // @alloc
 function _lt takes integer a, integer b returns integer
     local integer new = _alloc()
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
     set _Type[new] = Types#_Bool
-    set _Bool[new] = _Int[a] < _Int[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Bool[new] = _Int[a] < _Int[b]
+    elseif ty_a == Types#_Int and ty_b == Types#_Real then
+	set _Bool[new] = _Int[a] < _Real[b]
+    elseif ty_b == Types#_Int and ty_a == Types#_Real then
+	set _Bool[new] = _Real[a] < _Int[b]
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Bool[new] = _Real[a] < _Real[b]
+    else
+	call Print#_error("_lt: Error. Should not happen")
+    endif
     return new
 endfunction
 
 // @alloc
 function _lte takes integer a, integer b returns integer
     local integer new = _alloc()
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
     set _Type[new] = Types#_Bool
-    set _Bool[new] = _Int[a] <= _Int[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Bool[new] = _Int[a] <= _Int[b]
+    elseif ty_a == Types#_Int and ty_b == Types#_Real then
+	set _Bool[new] = _Int[a] <= _Real[b]
+    elseif ty_b == Types#_Int and ty_a == Types#_Real then
+	set _Bool[new] = _Real[a] <= _Int[b]
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Bool[new] = _Real[a] <= _Real[b]
+    else
+	call Print#_error("_lte: Error. Should not happen")
+    endif
     return new
 endfunction
 
@@ -385,4 +514,165 @@ endfunction
 function _init takes nothing returns nothing
     set _Nil = _alloc()
     set _Type[_Nil] = Types#_Nil
+endfunction
+
+function _parse_digit takes string c returns integer
+    if c == "F" then
+	return 15
+    elseif c == "E" then
+	return 14
+    elseif c == "D" then
+	return 13
+    elseif c == "C" then
+	return 12
+    elseif c == "B" then
+	return 11
+    elseif c == "A" then
+	return 10
+    elseif c == "9" then
+	return 9
+    elseif c == "8" then
+	return 8
+    elseif c == "7" then
+	return 7
+    elseif c == "6" then
+	return 6
+    elseif c == "5" then
+	return 5
+    elseif c == "4" then
+	return 4
+    elseif c == "3" then
+	return 3
+    elseif c == "2" then
+	return 2
+    elseif c == "1" then
+	return 1
+    elseif c == "0" then
+	return 0
+    else
+	return -1
+    endif
+endfunction
+
+function _B2S takes boolean b returns string
+    if b then
+	return "True"
+    else
+	return "False"
+    endif
+endfunction
+
+function _parse_number takes string s returns real
+    local integer i = 0
+    local integer len = StringLength(s)
+    local string c
+    local real res = 0.0
+    local real frac = 0.0
+    local integer tmp
+    local boolean dot = false
+    local integer dotpos = -1
+    local integer base = 3
+    local integer exp = 0
+    local real exp_sign = 1
+    local real sign = 1
+
+    //call Print#_print("_parse_number("+s+")")
+
+    set _error = false
+
+
+    // ltrim
+    loop
+	set c = SubString(s, i, i+1)
+	exitwhen c != " " and c != "\t" and c != "\n" and c != "\r"
+	set i = i +1
+    endloop
+    //set s = SubString(s, i, len)
+
+    set c = SubString(s, i, i+1)
+    if c == "+" then
+	set i = i +1
+    elseif c == "-" then
+	set i = i +1
+	set sign = -1
+    endif
+
+    // base detection
+    if StringCase(SubString(s, i, i+2), true) == "0X" then
+	set base = 16
+	set i = i+2
+    else
+	set base = 10
+    endif
+
+    // parsing number
+    loop
+    exitwhen i >= len
+	set c = StringCase(SubString(s, i, i+1), true)
+	set tmp = _parse_digit(c)
+
+	if c == "." and dot then
+	    set _error = true
+	    return 0.0
+	elseif c == "." then
+	    set dot = true
+	    set dotpos = i
+	elseif c == "E" and base == 10 then
+	    // scientific notation
+	    set i = i +1
+	    set c = SubString(s, i, i+1)
+	    if c == "+" then
+		set i = i +1
+	    elseif c == "-" then
+		set i = i +1
+		set exp_sign = -1
+	    else
+		set tmp = _parse_digit(c)
+		if tmp < 0 or tmp > 9 then
+		    set _error = true
+		    return 0.0
+		endif
+	    endif
+
+	    loop
+	    exitwhen i >= len
+		set c = SubString(s, i, i+1)
+		set tmp = _parse_digit(c)
+		if tmp < 0 or tmp >= 10 then
+		    set _error = true
+		    return 0.0
+		endif
+		set exp = exp * 10 + tmp
+		set i = i +1
+	    endloop
+	    exitwhen true
+	elseif tmp >= base then
+	    set _error = true
+	    return 0.0
+	elseif tmp < 0 then
+	    set i = i -1
+	    exitwhen true
+	elseif tmp >= 0 then
+	    if dot then
+		set frac = frac + tmp/Pow(base, i-dotpos)
+	    else
+		set res = res * base + tmp
+	    endif
+	else
+	endif
+	set i = i + 1
+    endloop
+
+    // error checking and rtrim
+    loop
+    exitwhen i >= len
+	set c = SubString(s, i, i+1)
+	if c != " " and c != "\t" and c != "\n" and c != "\r" then
+	    set _error = true
+	    return 0.0
+	endif
+	set i = i + 1
+    endloop
+
+    return sign * (res + frac) * Pow(10, exp*exp_sign)
 endfunction

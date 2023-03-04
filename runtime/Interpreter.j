@@ -13,6 +13,51 @@ globals
 endglobals
 #include "alloc.j"
 
+// @alloc
+function _numbercontext takes integer v returns integer
+    local integer ty = Value#_Type[v]
+    if ty == Types#_Int then
+	return v
+    elseif ty == Types#_Real then
+	return v
+    elseif ty == Types#_String then
+	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
+	if Value#_error then
+	    call Print#_error("Error: cannot coerce string to number")
+	endif
+	return v
+    else
+	// TODO: metatables
+	return Value#_litnil()
+    endif
+	
+endfunction
+
+// @alloc
+function _integercontext takes integer v returns integer
+    local integer ty = Value#_Type[v]
+    if ty == Types#_Int then
+	return v
+    elseif ty == Types#_String then
+	set ty = Types#_Real
+	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
+	if Value#_error then
+	    call Print#_error("Error: cannot coerce string to number")
+	    return Value#_litnil()
+	endif
+    endif
+
+    if ty == Types#_Real then
+	set ty = R2I(Value#_Real[v]) // casually reusing variable
+	if Value#_Real[v] == ty then
+	    return Value#_litint(ty)
+	endif
+    endif
+
+    // TODO: metatables
+    call Print#_error("Error: cannot coerce value to integer")
+    return Value#_litnil()
+endfunction
 
 function _Not takes integer ctx, integer ip returns nothing
     local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
@@ -33,31 +78,31 @@ function _Neg takes integer ctx, integer ip returns nothing
 endfunction
 
 function _Add takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_add(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer r = Value#_add(_numbercontext(a), _numbercontext(b))
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
 endfunction
 
 function _Sub takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_sub(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer r = Value#_sub(_numbercontext(a), _numbercontext(b))
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
 endfunction
 
 function _Mul takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_mul(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer r = Value#_mul(_numbercontext(a), _numbercontext(b))
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
 endfunction
 
 function _Div takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_div(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer r = Value#_div(_numbercontext(a), _numbercontext(b))
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
 endfunction
 
 function _EQ takes integer ctx, integer ip returns nothing
@@ -103,7 +148,6 @@ function _LT takes integer ctx, integer ip returns nothing
 endfunction
 
 function _Table takes integer ctx, integer ip returns nothing
-    // Probably gonna create a LuaTable struct at some point
     call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_table() )
 endfunction
 
@@ -120,8 +164,7 @@ function _JumpT takes integer ctx, integer ip returns nothing
 endfunction
 
 function _Local takes integer ctx, integer ip returns nothing
-    // TODO: do proper nil
-    call StringTable#_set( Context#_locals[ctx], Ins#_string[ip], 0)
+    call StringTable#_set( Context#_locals[ctx], Ins#_string[ip], Value#_litnil())
 endfunction
 
 function _Lambda takes integer ctx, integer ip returns nothing
