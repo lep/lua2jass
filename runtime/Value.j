@@ -156,6 +156,40 @@ function _div takes integer a, integer b returns integer
     return new
 endfunction
 
+// round towards negative inf
+function _round takes real r returns integer
+    if r < 0 then
+	return R2I(r-1)
+    else
+	return R2I(r)
+    endif
+endfunction
+
+// @alloc
+function _idiv takes integer a, integer b returns integer
+    // always returning an integer
+    local integer new = _alloc()
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
+
+    if ty_a == Types#_Int and ty_b == Types#_Int then
+	set _Type[new] = Types#_Int
+	set _Int[new] = _round( I2R(_Int[a]) / _Int[b] )
+    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
+	set _Type[new] = Types#_Int
+	set _Int[new] = _round( _Int[a] / _Real[b] )
+    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
+	set _Type[new] = Types#_Int
+	set _Int[new] = _round( _Real[a] / _Int[b] )
+    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+	set _Type[new] = Types#_Int
+	set _Int[new] = _round( _Real[a] / _Real[b] )
+    else
+	call Print#_error("_idiv: Error. Should not happen")
+    endif
+    return new
+endfunction
+
 // @alloc
 function _gt takes integer a, integer b returns integer
     local integer new = _alloc()
@@ -487,6 +521,116 @@ function _len takes integer v returns integer
 endfunction
 
 // @alloc
+// TODO: use correct mod.
+// TODO: patch ifdef
+function _mod takes integer a, integer b returns integer
+    local integer new = _alloc()
+    local integer tya = _Type[a]
+    local integer tyb = _Type[b]
+    if tya == Types#_Int and tyb == Types#_Int then
+	set _Type[new] = Types#_Int
+	set _Int[new] = _Int[a] % _Int[b]
+    elseif tya == Types#_Real and tyb == Types#_Real then
+	set _Type[new] = Types#_Real
+	set _Real[new] = ModuloReal( _Real[a], _Real[b] )
+    elseif tya == Types#_Real and tyb == Types#_Int then
+	set _Type[new] = Types#_Real
+	set _Real[new] = ModuloReal( _Real[a], _Int[b] )
+    elseif tyb == Types#_Real and tya == Types#_Int then
+	set _Type[new] = Types#_Real
+	set _Real[new] = ModuloReal( _Int[a], _Real[b] )
+    endif
+
+    return new
+endfunction
+
+// @alloc
+function _exp takes integer a, integer b returns integer
+    local integer new = _alloc()
+    local integer tya = _Type[a]
+    local integer tyb = _Type[b]
+    set _Type[new] = Types#_Real
+    if tya == Types#_Int and tyb == Types#_Int then
+	set _Real[new] = Pow(_Int[a], _Int[b])
+    elseif tya == Types#_Real and tyb == Types#_Real then
+	set _Real[new] = Pow( _Real[a], _Real[b] )
+    elseif tya == Types#_Real and tyb == Types#_Int then
+	set _Real[new] = Pow( _Real[a], _Int[b] )
+    elseif tyb == Types#_Real and tya == Types#_Int then
+	set _Real[new] = Pow( _Int[a], _Real[b] )
+    endif
+
+    return new
+endfunction
+
+// bit functions
+
+// @alloc
+// TODO: negative b
+function _shiftl takes integer a, integer b returns integer
+    local integer new = _alloc()
+    set _Type[new] = Types#_Int
+    set _Int[new] = R2I( _Int[a] * Pow(2, _Int[b]) )
+    return new
+endfunction
+
+// @alloc
+// TODO: negative b
+function _shiftr takes integer a, integer b returns integer
+    local integer new = _alloc()
+    set _Type[new] = Types#_Int
+    set _Int[new] = R2I( _Int[a] / Pow(2, _Int[b]) )
+    return new
+endfunction
+
+// @alloc
+function _band takes integer a, integer b returns integer
+    local integer new = _alloc()
+    set _Type[new] = Types#_Int
+    set _Int[new] = BlzBitAnd( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
+    return new
+endfunction
+
+// @alloc
+function _bor takes integer a, integer b returns integer
+    local integer new = _alloc()
+    set _Type[new] = Types#_Int
+    set _Int[new] = BlzBitOr( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
+    return new
+endfunction
+
+// @alloc
+function _bxor takes integer a, integer b returns integer
+    local integer new = _alloc()
+    set _Type[new] = Types#_Int
+    set _Int[new] = BlzBitXor( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
+    return new
+endfunction
+
+
+function _concat takes integer a, integer b returns integer
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
+    local string sa
+    local string sb
+    if ty_a != Types#_String then
+	set sa = Value#_tostring(a)
+    else
+	set sa = _String[a]
+    endif
+    if ty_b != Types#_String then
+	set sb = Value#_tostring(b)
+    else
+	set sb = _String[b]
+    endif
+    call Print#_print("_concat")
+    call Print#_print("  - sa: " + sa)
+    call Print#_print("  - sb: " + sb)
+    return Value#_litstring( sa + sb )
+
+endfunction
+
+// @alloc
 function _eq takes integer a, integer b returns integer
     local integer new = _alloc()
     set _Type[new] = Types#_Bool
@@ -551,14 +695,6 @@ function _parse_digit takes string c returns integer
 	return 0
     else
 	return -1
-    endif
-endfunction
-
-function _B2S takes boolean b returns string
-    if b then
-	return "True"
-    else
-	return "False"
     endif
 endfunction
 

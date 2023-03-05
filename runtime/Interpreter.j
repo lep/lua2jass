@@ -67,8 +67,43 @@ endfunction
 
 function _Complement takes integer ctx, integer ip returns nothing
     local integer v1 = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer v2 = Value#_complement(v1)
+    local integer v2 = Value#_complement( _integercontext(v1) )
     call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], v2)
+endfunction
+
+function _ShiftL takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+    local integer r = Value#_shiftl( _integercontext(a), _integercontext(b) )
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+endfunction
+
+function _ShiftR takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+    local integer r = Value#_shiftr( _integercontext(a), _integercontext(b) )
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+endfunction
+
+function _BAnd takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+    local integer r = Value#_band( _integercontext(a), _integercontext(b) )
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+endfunction
+
+function _BOr takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+    local integer r = Value#_bor( _integercontext(a), _integercontext(b) )
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+endfunction
+
+function _BXor takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+    local integer r = Value#_bxor( _integercontext(a), _integercontext(b) )
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
 endfunction
 
 function _Neg takes integer ctx, integer ip returns nothing
@@ -102,6 +137,27 @@ function _Div takes integer ctx, integer ip returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer r = Value#_div(_numbercontext(a), _numbercontext(b))
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+endfunction
+
+function _IDiv takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer r = Value#_idiv(_numbercontext(a), _numbercontext(b))
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+endfunction
+
+function _Mod takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer r = Value#_mod(_numbercontext(a), _numbercontext(b))
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+endfunction
+
+function _Exp takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer r = Value#_exp(_numbercontext(a), _numbercontext(b))
     call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
 endfunction
 
@@ -410,6 +466,13 @@ function _SetTable takes integer ctx, integer ip returns nothing
     call Value#_settable(value_tbl, value_key, value_val)
 endfunction
 
+function _Concat takes integer ctx, integer ip returns nothing
+    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+    local integer r = Value#_concat( a, b )
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r )
+endfunction
+
 function _step takes integer interpreter returns boolean
     local integer ctx = _ctx[_stack_top[interpreter]]
     // TODO: check if in range
@@ -432,6 +495,16 @@ function _step takes integer interpreter returns boolean
 	call _Not(ctx, ip)
     elseif ins == Ins#_Complement then
 	call _Complement(ctx, ip)
+    elseif ins == Ins#_ShiftL then
+	call _ShiftL(ctx, ip)
+    elseif ins == Ins#_ShiftR then
+	call _ShiftR(ctx, ip)
+    elseif ins == Ins#_BAnd then
+	call _BAnd(ctx, ip)
+    elseif ins == Ins#_BOr then
+	call _BOr(ctx, ip)
+    elseif ins == Ins#_BXor then
+	call _BXor(ctx, ip)
     elseif ins == Ins#_Neg then
 	call _Neg(ctx, ip)
     elseif ins == Ins#_Add then
@@ -444,6 +517,12 @@ function _step takes integer interpreter returns boolean
 	call _Mul(ctx, ip)
     elseif ins == Ins#_Div then
 	call _Div(ctx, ip)
+    elseif ins == Ins#_IDiv then
+	call _IDiv(ctx, ip)
+    elseif ins == Ins#_Mod then
+	call _Mod(ctx, ip)
+    elseif ins == Ins#_Exp then
+	call _Exp(ctx, ip)
     elseif ins == Ins#_EQ then
 	call _EQ(ctx, ip)
     elseif ins == Ins#_NEQ then
@@ -500,6 +579,8 @@ function _step takes integer interpreter returns boolean
 	call _Append(ctx, ip)
     elseif ins == Ins#_GetList then
 	call _GetList(ctx, ip)
+    elseif ins == Ins#_Concat then
+	call _Concat(ctx, ip)
     elseif ins == Ins#_Label then
 	// NOP
     else

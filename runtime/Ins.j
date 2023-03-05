@@ -19,7 +19,7 @@ globals
     constant integer _SetTable  = 15 // XXX
     constant integer _GetTable  = 16 // XXX
     constant integer _Ret       = 17 // XXX
-    constant integer _Label     = 18 // XXX
+    constant integer _Label     = 18 // XXX // TODO: remove
     constant integer _Jump      = 19 // XXX
     constant integer _JumpT     = 20 // XXX
     constant integer _Not       = 21 // XXX
@@ -36,16 +36,16 @@ globals
     constant integer _Div       = 32 // XXX
     constant integer _Sub       = 33 // XXX
     constant integer _Add       = 34 // XXX
-    constant integer _Exp       = 35
-    constant integer _Mod       = 36
-    constant integer _Concat    = 37
-    constant integer _IDiv      = 38
-    constant integer _ShiftL    = 39
-    constant integer _ShiftR    = 40
-    constant integer _BAnd      = 41
-    constant integer _BOr       = 42
-    constant integer _BXor      = 43
-    constant integer _Fun       = 44
+    constant integer _Exp       = 35 // XXX
+    constant integer _Mod       = 36 // XXX
+    constant integer _Concat    = 37 // XXX
+    constant integer _IDiv      = 38 // XXX
+    constant integer _ShiftL    = 39 // XXX
+    constant integer _ShiftR    = 40 // XXX
+    constant integer _BAnd      = 41 // XXX
+    constant integer _BOr       = 42 // XXX
+    constant integer _BXor      = 43 // XXX
+    constant integer _Fun       = 44 // TODO: remove
     constant integer _Lambda    = 45 // XXX
     constant integer _Local     = 46 // XXX
 
