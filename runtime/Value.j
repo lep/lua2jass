@@ -157,12 +157,26 @@ function _div takes integer a, integer b returns integer
 endfunction
 
 // round towards negative inf
-function _round takes real r returns integer
-    if r < 0 then
-	return R2I(r-1)
+function _floor takes real r returns integer
+    local integer i = R2I(r)
+    if i == r then
+	return i
+    elseif r < 0 then
+	return R2I(r - 1)
     else
-	return R2I(r)
+	return i
     endif
+endfunction
+
+
+// @noalloc
+function _mod_real takes real dividend, real divisor returns real
+    return dividend - divisor * _floor(dividend / divisor )
+endfunction
+
+// @noalloc
+function _mod_int takes integer dividend, integer divisor returns integer
+    return dividend - divisor * _floor(I2R(dividend)/divisor)
 endfunction
 
 // @alloc
@@ -174,16 +188,16 @@ function _idiv takes integer a, integer b returns integer
 
     if ty_a == Types#_Int and ty_b == Types#_Int then
 	set _Type[new] = Types#_Int
-	set _Int[new] = _round( I2R(_Int[a]) / _Int[b] )
+	set _Int[new] = _floor( I2R(_Int[a]) / _Int[b] )
     elseif ty_a == Types#_Int  and ty_b == Types#_Real then
 	set _Type[new] = Types#_Int
-	set _Int[new] = _round( _Int[a] / _Real[b] )
+	set _Int[new] = _floor( _Int[a] / _Real[b] )
     elseif ty_b == Types#_Int  and ty_a == Types#_Real then
 	set _Type[new] = Types#_Int
-	set _Int[new] = _round( _Real[a] / _Int[b] )
+	set _Int[new] = _floor( _Real[a] / _Int[b] )
     elseif ty_a == Types#_Real and ty_b == Types#_Real then
 	set _Type[new] = Types#_Int
-	set _Int[new] = _round( _Real[a] / _Real[b] )
+	set _Int[new] = _floor( _Real[a] / _Real[b] )
     else
 	call Print#_error("_idiv: Error. Should not happen")
     endif
@@ -379,9 +393,9 @@ function _rawequal_noalloc takes integer a, integer b returns boolean
 	// real comparison
 	return not (_Real[a] != _Real[b]) 
     elseif type_a == Types#_Int and type_b == Types#_Real then
-	return _Int[a] == R2I(_Real[b])
+	return I2R(_Int[a]) == _Real[b]
     elseif type_b == Types#_Int and type_a == Types#_Real then
-	return _Int[b] == R2I(_Real[a])
+	return I2R(_Int[b]) == _Real[a]
     elseif type_a == Types#_Bool and type_b == Types#_Bool then
 	return _Bool[a] == _Bool[b]
     elseif type_a == Types#_String and type_b == Types#_String then
@@ -521,24 +535,22 @@ function _len takes integer v returns integer
 endfunction
 
 // @alloc
-// TODO: use correct mod.
-// TODO: patch ifdef
 function _mod takes integer a, integer b returns integer
     local integer new = _alloc()
     local integer tya = _Type[a]
     local integer tyb = _Type[b]
     if tya == Types#_Int and tyb == Types#_Int then
 	set _Type[new] = Types#_Int
-	set _Int[new] = _Int[a] % _Int[b]
+	set _Int[new] = _mod_int(_Int[a],  _Int[b])
     elseif tya == Types#_Real and tyb == Types#_Real then
 	set _Type[new] = Types#_Real
-	set _Real[new] = ModuloReal( _Real[a], _Real[b] )
+	set _Real[new] = _mod_real( _Real[a], _Real[b] )
     elseif tya == Types#_Real and tyb == Types#_Int then
 	set _Type[new] = Types#_Real
-	set _Real[new] = ModuloReal( _Real[a], _Int[b] )
+	set _Real[new] = _mod_real( _Real[a], _Int[b] )
     elseif tyb == Types#_Real and tya == Types#_Int then
 	set _Type[new] = Types#_Real
-	set _Real[new] = ModuloReal( _Int[a], _Real[b] )
+	set _Real[new] = _mod_real( _Int[a], _Real[b] )
     endif
 
     return new
@@ -566,20 +578,26 @@ endfunction
 // bit functions
 
 // @alloc
-// TODO: negative b
 function _shiftl takes integer a, integer b returns integer
     local integer new = _alloc()
     set _Type[new] = Types#_Int
-    set _Int[new] = R2I( _Int[a] * Pow(2, _Int[b]) )
+    if _Int[b] < 0 then
+	set _Int[new] = _Int[a] / R2I(Pow(2, -_Int[b]))
+    else
+	set _Int[new] = _Int[a] * R2I(Pow(2, _Int[b]) )
+    endif
     return new
 endfunction
 
 // @alloc
-// TODO: negative b
 function _shiftr takes integer a, integer b returns integer
     local integer new = _alloc()
     set _Type[new] = Types#_Int
-    set _Int[new] = R2I( _Int[a] / Pow(2, _Int[b]) )
+    if _Int[b] < 0 then
+	set _Int[new] = _Int[a] * R2I(Pow(2, -_Int[b]) )
+    else
+	set _Int[new] = _Int[a] / R2I(Pow(2, _Int[b]) )
+    endif
     return new
 endfunction
 
