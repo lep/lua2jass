@@ -80,7 +80,7 @@ compileScript :: Block -> CompileM ()
 compileScript block = do
     (_, asm) <- local $ do
         emit $ B.Fun 0 "$main"
-        compileBlock block
+        compileBlock' False block
         emit B.Ret
     addFunction "$main" asm
 
@@ -100,14 +100,14 @@ compileReturn reg_ret = go 1
     
 compileFn :: Block -> CompileM ()
 compileFn (Block stmts ret) = do
-    emit $ B.Local "$ret"
-    ret' <- fresh
-    emit $ B.Table ret'
-    emit $ B.SetLit "$ret" ret'
+    --emit $ B.Local "$ret"
+    --ret' <- fresh
+    --emit $ B.Table ret'
+    --emit $ B.SetLit "$ret" ret'
     mapM_ compileStat stmts
     case ret of
         Nothing -> pure ()
-        Just es -> compileReturn ret' es
+        Just es -> compileReturn 0 es
     emit B.Ret
 
 compileBlock :: Block -> CompileM ()
@@ -515,15 +515,22 @@ compileFunArgs' = compileFunArgs 1
 
 compileFunCall = \case
     NormalFunCall fn funArg -> do
-        ret <- fresh
         fn <- compilePrefixExp' fn
+
+        reg_zero <- fresh
+        reg_ret <- fresh
         reg_params <- fresh
         emit $ B.Table reg_params
+        emit $ B.Table reg_ret
+        emit $ B.LitInt reg_zero "0"
+
+        emit $ B.SetTable reg_params reg_zero reg_ret
         compileFunArgs' reg_params funArg
-        emit $ B.Call ret fn reg_params
-        pure ret
+        emit $ B.Call fn reg_params
+        pure reg_ret
 
     MethodCall prefixExp (Name name) funArg -> do
+        reg_zero <- fresh
         reg_ret <- fresh
         reg_obj <- compilePrefixExp' prefixExp
 
@@ -535,14 +542,17 @@ compileFunCall = \case
 
         reg_params <- fresh
         emit $ B.Table reg_params
+        emit $ B.Table reg_ret
+        emit $ B.LitInt reg_zero "0"
 
         reg_one <- fresh
         emit $ B.LitInt reg_one "1"
 
+        emit $ B.SetTable reg_params reg_zero reg_ret
         emit $ B.SetTable reg_params reg_one reg_obj
         compileFunArgs 2 reg_params funArg
 
-        emit $ B.Call reg_ret reg_fn reg_params
+        emit $ B.Call reg_fn reg_params
         pure reg_ret
 
 {--
@@ -600,6 +610,8 @@ compileFunBody lbl internalName (FunBody args isVararg body) = do
     let normal_args = succ $ length args
     (_, asm) <- local $ do
         emit $ B.Fun lbl internalName
+        emit $ B.Local "$ret"
+        emit $ B.SetLit "$ret" 0
         forM_ (zip [1..] args) $ \(param, Name arg) -> do
             emit $ B.Local arg
             emit $ B.SetLit arg param

@@ -3,6 +3,8 @@
 
 globals
     #include "alloc-globals.j"
+
+    constant integer _StopInterpreter = 1
     
     // struct interpreter
     integer array _stack_top
@@ -230,7 +232,7 @@ function _Lambda takes integer ctx, integer ip returns nothing
     set Context#_chunk_name[new_ctx] = Ins#_string[ip]
     set Context#_ip[new_ctx] = Ins#_Labels[ - Ins#_op1[ip] ]
     
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], Value#_lambda(new_ctx))
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], Value#_lambda(new_ctx, Ins#_string[ip]))
 endfunction
 
 function _SetLit takes integer ctx, integer ip returns nothing
@@ -308,16 +310,15 @@ function _Leave takes integer ctx, integer interpreter returns nothing
     set _stack_top[interpreter] = List#_next[head]
     set new_old_ctx = _ctx[_stack_top[interpreter]]
     set Context#_ip[new_old_ctx] = Context#_ip[old_ctx]
-    //call List#_free(head)
+    call List#_free(head)
     //call Print#_print("  - "+I2S(ctx)+"("+I2S(old_ctx)+") --> "+I2S(new_old_ctx))
 
     //call Context#_free(old_ctx) // this is done via GC?
 endfunction
 
 function _Call takes integer ctx, integer ip, integer interpreter returns nothing
-    local integer reg_res = Ins#_op1[ip]
-    local integer reg_fn = Ins#_op2[ip]
-    local integer reg_params = Ins#_op3[ip]
+    local integer reg_fn = Ins#_op1[ip]
+    local integer reg_params = Ins#_op2[ip]
     local integer fn = Table#_get( Context#_tmps[ctx], reg_fn)
     local integer ty = Value#_Type[fn]
     local integer params = Table#_get( Context#_tmps[ctx], reg_params ) // params : Value
@@ -328,16 +329,16 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
 
     if ty == Types#_Lambda then
 	set new_ctx = Context#_clone(Value#_Int[fn])
-	 // this leaks new_ctx freshly allocated _tmps
+	// TODO: this leaks new_ctx freshly allocated _tmps
 	set Context#_tmps[new_ctx] = Value#_Int[params] // this might need some refactoring
-	set Context#_parent_call[new_ctx] = ctx
+	//set Context#_parent_call[new_ctx] = ctx
 
 	// stack.push(new_ctx)
 	set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
 	set _ctx[_stack_top[interpreter]] = new_ctx
 	//call Print#_print("  - "+I2S(ctx)+" --> "+I2S(new_ctx))
     elseif ty == Types#_BuiltInFunction then
-	call Builtins#_dispatch_builtin(fn, params, ctx, reg_res)
+	call Builtins#_dispatch_builtin(fn, params, ctx, interpreter)
     else
 	call Print#_print("Cannot call object of type "+I2S(ty))
     endif
@@ -419,32 +420,36 @@ function _Append takes integer ctx, integer ip returns nothing
     endloop
 endfunction
 
-function _Ret takes integer ctx, integer interpreter returns nothing
-    local integer parent_ctx = Context#_parent_call[ctx]
-    local integer parent_ip
-    local integer return_value
+function _Ret takes integer ctx, integer interpreter returns boolean
+    //local integer parent_ctx = Context#_parent_call[ctx]
+    //local integer parent_ip
+    //local integer return_value
     local integer head = _stack_top[interpreter]
-    local integer parent_ctx_check
     //call Print#_print("Ret")
+    //call Print#_print("  - current ctx: "+I2S(ctx))
+    //call Print#_print("  - stop interpreting: "+I2S(Context#_ret_behaviour[ctx]))
     //call Print#_print("  - head "+I2S(head))
 
     // stack.pop()
     set _stack_top[interpreter] = List#_next[head]
-    set parent_ctx_check = _ctx[_stack_top[interpreter]]
-    //call List#_free(head)
-    if parent_ctx == 0 then
-	//call Print#_print("  - "+ I2S(ctx)+" --> "+I2S(0))
-	call I2S(1 / 0) // TODO
-	return
-    endif
-    set parent_ip = Context#_ip[parent_ctx] - 1
-    set return_value = Context#_get( ctx, "$ret" )
-    //call Builtins#_print(Value#_Int[return_value], 0, 0)
-    //call Print#_print("  - "+ I2S(ctx)+" --> "+I2S(parent_ctx)+" ("+I2S(parent_ctx_check)+")")
-    //call Print#_print("  - parent_ip = "+ I2S(parent_ip))
-    //call Print#_print("  - return_value = "+ I2S(Value#_Int[return_value]))
+    call List#_free(head)
+    return Context#_ret_behaviour[ctx] == _StopInterpreter 
+    //call Print#_print("  - next ctx: "+I2S(_ctx[_stack_top[interpreter]]))
+    //set parent_ctx_check = _ctx[_stack_top[interpreter]]
 
-    call Table#_set( Context#_tmps[parent_ctx], Ins#_op1[parent_ip], return_value )
+    //if parent_ctx == 0 then
+    //    //call Print#_print("  - "+ I2S(ctx)+" --> "+I2S(0))
+    //    call I2S(1 / 0) // TODO
+    //    return
+    //endif
+    //set parent_ip = Context#_ip[parent_ctx] - 1
+    //set return_value = Context#_get( ctx, "$ret" )
+    ////call Builtins#_print(Value#_Int[return_value], 0, 0)
+    ////call Print#_print("  - "+ I2S(ctx)+" --> "+I2S(parent_ctx)+" ("+I2S(parent_ctx_check)+")")
+    ////call Print#_print("  - parent_ip = "+ I2S(parent_ip))
+    ////call Print#_print("  - return_value = "+ I2S(Value#_Int[return_value]))
+
+    //call Table#_set( Context#_tmps[parent_ctx], Ins#_op1[parent_ip], return_value )
 endfunction
 
 /// I guess in the future when we handle operators by firstly checking for
@@ -466,10 +471,10 @@ function _SetTable takes integer ctx, integer ip returns nothing
     call Value#_settable(value_tbl, value_key, value_val)
 endfunction
 
-function _Concat takes integer ctx, integer ip returns nothing
+function _Concat takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
     local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
-    local integer r = Value#_concat( a, b )
+    local integer r = Value#_concat( a, b, interpreter )
     call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r )
 endfunction
 
@@ -482,13 +487,13 @@ function _step takes integer interpreter returns boolean
     //call Print#_print("_step ("+I2S(ctx)+")")
 
     if ctx == 0 or ip == 0 or ins == 0 then
-	//call Print#_print("out of gas")
+	call Print#_print("  - stopping via 0")
 	return false
     endif
 
     set Context#_ip[ctx] = Context#_ip[ctx] + 1
     
-    //call Print#_print("Executing instruction ("+I2S(ip)+") "+ Ins#_Name[ins])
+    //call Print#_print("Executing instruction ("+I2S(ip)+") "+ Ins#_Name[ins]+" ctx("+I2S(ctx)+")")
 
     // TODO: binsearch
     if ins == Ins#_Not then
@@ -570,8 +575,14 @@ function _step takes integer interpreter returns boolean
     elseif ins == Ins#_Call then
 	call _Call(ctx, ip, interpreter)
     elseif ins == Ins#_Ret then
-	call _Ret(ctx, interpreter)
+	if _Ret(ctx, interpreter) then
+	    //call Print#_print("  - stopping via StopInterpreter")
+	    return false
+	endif
+	//if Context#_ret_behaviour[_ctx[_stack_top[interpreter]]] == _StopInterpreter then
+	//endif
     elseif ins == Ins#_SetTable then
+	//call Print#_print(" SetTable at IP = "+I2S(ip))
 	call _SetTable(ctx, ip)
     elseif ins == Ins#_GetTable then
 	call _GetTable(ctx, ip)
@@ -580,7 +591,7 @@ function _step takes integer interpreter returns boolean
     elseif ins == Ins#_GetList then
 	call _GetList(ctx, ip)
     elseif ins == Ins#_Concat then
-	call _Concat(ctx, ip)
+	call _Concat(ctx, ip, interpreter)
     elseif ins == Ins#_Label then
 	// NOP
     else
@@ -596,8 +607,10 @@ function _debug_start_main takes nothing returns nothing
 
     call Context#_init(ctx)
     set Context#_ip[ctx] = Ins#_Labels[0]
+    set Context#_ret_behaviour[ctx] = _StopInterpreter
 
     call Builtins#_register_builtin(ctx, "print", 1)
+    call Builtins#_register_builtin(ctx, "setmetatable", 2)
 
     set _stack_top[interpreter] = List#_cons(0)
     set _ctx[_stack_top[interpreter]] = ctx
@@ -608,4 +621,40 @@ function _debug_start_main takes nothing returns nothing
     call Print#_print("reached end of loop")
 
     call _free(interpreter)
+endfunction
+
+function _call_function takes integer fn, integer params, integer interpreter returns nothing
+    local integer ctx = Context#_clone( Value#_Int[fn] )
+    local integer ret_table = Table#_get( params, 0 ) // : Value
+    local integer tmp
+    set Context#_tmps[ctx] = params
+    set Context#_ret_behaviour[ctx] = _StopInterpreter
+
+    //call Print#_print("_call_function")
+    //call Print#_print("  - previous stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
+    //call Print#_print("  - new stack top ctx: "+I2S(ctx))
+    //call Print#_print("  - ret table: "+I2S(ret_table))
+    //call Print#_print("  - ret table _Int id: "+I2S(Value#_Int[ret_table]))
+
+    // stack.push(ctx)
+    set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
+    set _ctx[_stack_top[interpreter]] = ctx
+
+    loop
+	exitwhen not _step(interpreter)
+    endloop
+    set tmp = Table#_get( Value#_Int[ret_table], 1 )
+    //call Print#_print("  - _Int[ret_table][1]: "+I2S(tmp))
+    //call Print#_print("  - type thereof: "+I2S(Value#_Type[tmp]))
+    //call Print#_print("  - current stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
+    //call Print#_print("  - returning")
+endfunction
+
+function _call_function_wrap takes nothing returns boolean
+    call _call_function(Wrap#_Param1, Wrap#_Param2, Wrap#_Param3)
+    return true
+endfunction
+
+function _init takes nothing returns nothing
+    call TriggerAddCondition( Wrap#_WrapAround, Filter( function _call_function_wrap ))
 endfunction

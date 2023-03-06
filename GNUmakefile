@@ -1,6 +1,6 @@
 RUNTIME := runtime/Ins.j runtime/Interpreter.j runtime/Table.j runtime/Value.j  
 RUNTIME += runtime/Context.j runtime/StringTable.j runtime/List.j runtime/Print.j
-RUNTIME += runtime/Types.j runtime/Builtins.j
+RUNTIME += runtime/Types.j runtime/Builtins.j runtime/Wrap.j
 AUTO	:= auto/Auto.j
 
 OUT	:= $(patsubst runtime/%, out/%, $(RUNTIME))

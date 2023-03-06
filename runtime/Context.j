@@ -5,16 +5,18 @@ globals
     #include "alloc-globals.j"
 
     integer array _ip
+
     // @type StringTable
     integer array _locals
-    // @type LuaTable
-    integer array _params
+
     // @type Table
     integer array _tmps
-    // @type Context
-    integer array _parent_call
+
     // @type Context
     integer array _parent
+
+    // @type integer
+    integer array _ret_behaviour
 
     string array  _chunk_name
 
@@ -26,8 +28,9 @@ endglobals
 
 function _init takes integer ctx returns nothing
     set _locals[ctx] = Table#_alloc() // StringTable
-    set _params[ctx] = Table#_alloc()
+    //set _params[ctx] = Table#_alloc()
     set _tmps[ctx] = Table#_alloc()
+    set _ret_behaviour[ctx] = 0
 endfunction
 
 
@@ -37,7 +40,6 @@ function _clone takes integer ctx returns integer
     set _ip[new_ctx] = _ip[ctx]
     set _chunk_name[new_ctx] = _chunk_name[ctx]
     set _parent[new_ctx] = _parent[ctx]
-    set _parent_call[new_ctx] = _parent_call[ctx]
     return new_ctx
 endfunction
 

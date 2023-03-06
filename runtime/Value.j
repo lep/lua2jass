@@ -1,5 +1,5 @@
 // scope Value
-// REQUIRES Table Types List
+// REQUIRES Table Types List Wrap
 
 globals
     #include "alloc-globals.j"
@@ -12,6 +12,7 @@ globals
     integer array _Type
 
     integer array _Int2
+    integer array _Int3
 
     // List
     integer array _val
@@ -325,17 +326,19 @@ endfunction
 function _table takes nothing returns integer
     local integer new = _alloc()
     set _Type[new] = Types#_Table
-    set _Int[new] = Table#_alloc()
-    set _Int2[new] = Table#_alloc()
+    set _Int[new] = Table#_alloc()  // int keys
+    set _Int2[new] = Table#_alloc() // non-int keys
+    set _Int3[new] = 0
     return new
 endfunction
 
 
 // @alloc
-function _lambda takes integer a returns integer
+function _lambda takes integer a, string name returns integer
     local integer new = _alloc()
     set _Type[new] = Types#_Lambda
     set _Int[new] = a
+    set _String[new] = name
     return new
 endfunction
 
@@ -359,28 +362,6 @@ function _truthy takes integer a returns boolean
     endif
 endfunction
 
-
-// @noalloc
-function _tostring takes integer v returns string
-    local integer ty = _Type[v]
-    if ty == Types#_Int then
-	return I2S(_Int[v])
-    elseif ty == Types#_Real then
-	return R2S(_Real[v])
-    elseif ty == Types#_String then
-	return _String[v]
-    elseif ty == Types#_Lambda then
-	return "Fun: "+ I2S(_Int[v])
-    elseif ty == Types#_BuiltInFunction then
-	return "Native: " + I2S(_Int[v])
-    elseif ty == Types#_Table then
-	return "Table: " + I2S(_Int[v])
-    elseif ty == Types#_Nil then
-	return "nil"
-    else
-	return "unknown: " + I2S(_Type[v])
-    endif
-endfunction
 
 // @noalloc
 function _rawequal_noalloc takes integer a, integer b returns boolean
@@ -443,18 +424,19 @@ function _settable takes integer t, integer k, integer v returns nothing
     local integer ls
     local integer prev
 
-    //call Print#_print("_settable")
+    //call Print#_print("_settable("+I2S(t)+","+I2S(k)+","+I2S(v)+")")
 
     if _Type[t] != Types#_Table then
 	call Print#_error("Expected table but got "+I2S(_Type[t]))
     endif
 
-    if _Type[v] == Types#_Nil then
+    if _Type[k] == Types#_Nil then
 	call Print#_error("table index is nil")
     endif
 
     if ty == Types#_Int then
-	//call Print#_print("  - int key")
+//	call Print#_print("  - int key: "+I2S(_Int[k]))
+//	call Print#_print("  - _Int table id: "+I2S(_Int[t]))
 	call Table#_set( _Int[t], _Int[k], v )
     elseif ty == Types#_Real and _Real[k] == R2I(_Real[k]) then
 	//call Print#_print("  - real type but int key")
@@ -501,7 +483,6 @@ function _gettable takes integer v, integer k returns integer
 	set ls = Table#_get( tbl, _hash(k) )
 	loop
 	exitwhen ls == 0
-	    //call Print#_print("  - " +I2S(ls))
 	    if _rawequal_noalloc(_key[ls], k) then
 		return _val[ls]
 	    endif
@@ -625,28 +606,6 @@ function _bxor takes integer a, integer b returns integer
     return new
 endfunction
 
-
-function _concat takes integer a, integer b returns integer
-    local integer ty_a = _Type[a]
-    local integer ty_b = _Type[b]
-    local string sa
-    local string sb
-    if ty_a != Types#_String then
-	set sa = Value#_tostring(a)
-    else
-	set sa = _String[a]
-    endif
-    if ty_b != Types#_String then
-	set sb = Value#_tostring(b)
-    else
-	set sb = _String[b]
-    endif
-    call Print#_print("_concat")
-    call Print#_print("  - sa: " + sa)
-    call Print#_print("  - sb: " + sb)
-    return Value#_litstring( sa + sb )
-
-endfunction
 
 // @alloc
 function _eq takes integer a, integer b returns integer
@@ -830,3 +789,92 @@ function _parse_number takes string s returns real
 
     return sign * (res + frac) * Pow(10, exp*exp_sign)
 endfunction
+
+
+function _call1  takes integer fn, integer p1, integer interpreter returns integer
+    local integer params = Table#_alloc()
+    local integer ret = Value#_table()
+    //local integer tmp
+    //call Print#_print("_call1")
+    //call Print#_print("  - ret table: "+I2S(ret))
+    //call Print#_print("  - ret table _Int id: "+I2S(_Int[ret]))
+
+
+    call Table#_set( params, 0, ret ) // return value
+    call Table#_set( params, 1, p1 )
+
+    call Wrap#_call_function( fn, params, interpreter)
+    //return _gettable(_gettable( ret, _litint(0) ), _litint(1) )
+    //set tmp = Table#_get( Value#_Int[ret], 1 )
+    //call Print#_print("  - _Int[ret_table][1]: "+I2S(tmp))
+    //call Print#_print("  - type thereof: "+I2S(Value#_Type[tmp]))
+    return ret
+endfunction
+
+
+// @recursive
+function _tostring takes integer v, integer interpreter returns string
+    local integer ty = _Type[v]
+    local integer metatable
+    local integer metamethod
+    //call Print#_print("_tostring")
+    if ty == Types#_Int then
+	//call Print#_print("  - int")
+	return I2S(_Int[v])
+    elseif ty == Types#_Real then
+	//call Print#_print("  - real")
+	return R2S(_Real[v])
+    elseif ty == Types#_String then
+	//call Print#_print("  - string")
+	return _String[v]
+    elseif ty == Types#_Lambda then
+	//call Print#_print("  - lambda")
+	return "Fun: "+ I2S(_Int[v])
+    elseif ty == Types#_BuiltInFunction then
+	//call Print#_print("  - native")
+	return "Native: " + I2S(_Int[v])
+    elseif ty == Types#_Table then
+	//call Print#_print("  - table")
+	set metatable = Value#_Int3[v]
+	if metatable != 0 then
+	    //call Print#_print("  - got a metatable "+I2S(metatable)+" _Int = "+I2S(_Int[metatable]))
+	    set metamethod = Value#_gettable( metatable, Value#_litstring("__tostring"))
+	    if metamethod != _Nil then
+		//call Print#_print("  - got an entry point of type "+I2S(_Type[metamethod]))
+		//call Print#_print("  - entry point chunk name: "+ _String[metamethod])
+		set v = _call1( metamethod, v, interpreter )
+		return _tostring( Table#_get( _Int[v], 1), interpreter )
+	    endif
+	endif
+	return "Table: " + I2S(_Int[v])
+    elseif ty == Types#_Nil then
+	return "nil"
+    else
+	return "unknown: " + I2S(_Type[v])
+    endif
+endfunction
+
+// @recursive
+// TODO: concat actually doesn't call __tostring metamethod
+function _concat takes integer a, integer b, integer interpreter returns integer
+    local integer ty_a = _Type[a]
+    local integer ty_b = _Type[b]
+    local string sa
+    local string sb
+    if ty_a != Types#_String then
+	set sa = Value#_tostring(a, interpreter)
+    else
+	set sa = _String[a]
+    endif
+    if ty_b != Types#_String then
+	set sb = Value#_tostring(b, interpreter)
+    else
+	set sb = _String[b]
+    endif
+    call Print#_print("_concat")
+    call Print#_print("  - sa: " + sa)
+    call Print#_print("  - sb: " + sb)
+    return Value#_litstring( sa + sb )
+
+endfunction
+

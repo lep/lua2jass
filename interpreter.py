@@ -63,7 +63,8 @@ class Interpreter:
         self.output = io.StringIO()
 
     def print(self, ctx):
-        l = "\t".join(list(map(str, ctx.values())))
+        l = "\t".join(
+            list(map(str, ctx.values()))[1:])
         print(l)
         print(l, file=self.output)
         
@@ -91,7 +92,7 @@ class Interpreter:
             if ins[2] == "print":
                 ctx.tmps[ins[1]] = self.print
             elif ins[2] == "$params":
-                #log("my params are", ctx.tmps)
+                log("my params are", ctx.tmps)
                 ctx.tmps[ins[1]] = ctx.tmps
             else:
                 #name = ins[2]
@@ -131,8 +132,8 @@ class Interpreter:
             if parent_ctx is None:
                 raise StopInterpreterException()
             #log("returning from chunk", ctx.chunk_name, "to", parent_ctx.chunk_name, "return value", ctx.get("$ret"))
-            parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
-            parent_ctx.tmps[ parent_instruction[1] ] = ctx.get("$ret")
+            #parent_instruction = self.instructions[ parent_ctx.ip-1 ] # TODO
+            #parent_ctx.tmps[ parent_instruction[1] ] = ctx.get("$ret")
 
         elif ins[0] == "table":
             ctx.tmps[ ins[1] ] = {}
@@ -185,9 +186,9 @@ class Interpreter:
         elif ins[0] == "bind":
             ctx.params[ ins[1] ] = ctx.tmps[ins[2]]
         elif ins[0] == "call":
-            reg_res = ins[1]
-            reg_fn = ins[2]
-            reg_params = ins[3]
+            #reg_res = ins[1]
+            reg_fn = ins[1]
+            reg_params = ins[2]
             if hasattr(ctx.tmps[ reg_fn ], '__call__'):
                 ctx.tmps[reg_fn](ctx.tmps[reg_params])
             else:

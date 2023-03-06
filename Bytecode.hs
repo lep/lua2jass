@@ -23,7 +23,7 @@ type Label = Int
 type Name = Text
 
 data Bytecode =
-      Call Register Register Register
+      Call Register Register
     | Enter
     | Leave
     | GetLit Register Text
@@ -83,7 +83,7 @@ bla s =
 instance ToJSON Bytecode where
     toJSON = \case
         Fun lbl fn -> toJSON ( "fun", lbl, fn)
-        Call a b c -> toJSON ("call", a, b, c)
+        Call a b -> toJSON ("call", a, b)
         Enter -> toJSON ["enter"]
         Leave -> toJSON ["leave"]
         GetLit r t -> toJSON ("getlit", r, t)
@@ -193,11 +193,10 @@ toJass x i =
         [ setins i "Ins#_Local"
         , setstr i t
         ]
-    Call a b c ->
+    Call a b ->
         [ setins i "Ins#_Call"
         , setop i 1 a
         , setop i 2 b
-        , setop i 3 c
         ]
     Enter -> [ setins i "Ins#_Enter" ]
     Leave -> [ setins i "Ins#_Leave" ]
