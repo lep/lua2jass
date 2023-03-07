@@ -4,6 +4,9 @@
 globals
     string array _key
     integer array _value
+
+    integer array _head
+    integer array _ls
 endglobals
 
 function _set takes integer _tbl, string _k, integer _v returns nothing
@@ -19,6 +22,10 @@ function _set takes integer _tbl, string _k, integer _v returns nothing
     endloop
     // either _lst was 0 in the first place or no element was found in the list
     set _lst = List#_cons(_lst)
+
+    set _head[_tbl] = List#_cons(_head[_tbl])
+    set _ls[_head[_tbl]] = _lst
+
     set _key[_lst] = _k
     set _value[_lst] = _v
     call Table#_set(_tbl, StringHash(_k), _lst)
@@ -47,4 +54,17 @@ function _has takes integer tbl, string k returns boolean
     endloop
 
     return false
+endfunction
+
+function _dealloc takes integer tbl returns nothing
+    local integer ls = _head[tbl]
+    loop
+    exitwhen ls == 0
+        call List#_free(_ls[ls])
+        set ls = List#_next[ls]
+    endloop
+
+
+    call Table#_free(tbl)
+    set _head[tbl] = 0
 endfunction

@@ -2,7 +2,6 @@
 // REQUIRES Table Types List Wrap
 
 globals
-    #include "alloc-globals.j"
 
     integer array _Int
     real array    _Real
@@ -26,9 +25,22 @@ globals
     //
 
     boolean _error
+
+
+    integer _recycler
+    integer _all_objects
+    //#include "alloc-globals.j"
+    #include "deque-alloc-globals.j"
 endglobals
 
-#include "alloc.j"
+#include "deque-alloc.j"
+//#include "alloc.j"
+
+function _new takes nothing returns integer
+    return _fresh( _all_objects, _recycler )
+    //local integer this = Deque#_fresh( _all_objects, _recycler )
+    //return this
+endfunction
 
 // @noalloc
 function _litnil takes nothing returns integer
@@ -38,7 +50,7 @@ endfunction
 
 // @alloc
 function _neg takes integer v returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty = _Type[v]
     if ty == Types#_Int then
 	set _Type[new] = Types#_Int
@@ -54,7 +66,7 @@ endfunction
 
 // @alloc
 function _complement takes integer v returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Int
     set _Int[new] = - _Int[v] -1
     return new
@@ -62,7 +74,7 @@ endfunction
 
 // @alloc
 function _add takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
@@ -86,7 +98,7 @@ endfunction
 
 // @alloc
 function _sub takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
@@ -110,7 +122,7 @@ endfunction
 
 // @alloc
 function _mul takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
@@ -135,7 +147,7 @@ endfunction
 // @alloc
 function _div takes integer a, integer b returns integer
     // always real division
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
@@ -183,7 +195,7 @@ endfunction
 // @alloc
 function _idiv takes integer a, integer b returns integer
     // always returning an integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
@@ -207,7 +219,7 @@ endfunction
 
 // @alloc
 function _gt takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
     set _Type[new] = Types#_Bool
@@ -228,7 +240,7 @@ endfunction
 
 // @alloc
 function _gte takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
     set _Type[new] = Types#_Bool
@@ -249,7 +261,7 @@ endfunction
 
 // @alloc
 function _lt takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
     set _Type[new] = Types#_Bool
@@ -270,7 +282,7 @@ endfunction
 
 // @alloc
 function _lte takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
     set _Type[new] = Types#_Bool
@@ -292,7 +304,7 @@ endfunction
 
 // @alloc
 function _litint takes integer a returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Int
     set _Int[new] = a
     return new
@@ -300,7 +312,7 @@ endfunction
 
 // @alloc
 function _litfloat takes real a returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Real
     set _Real[new] = a
     return new
@@ -308,7 +320,7 @@ endfunction
 
 // @alloc
 function _litbool takes boolean a returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Bool
     set _Bool[new] = a
     return new
@@ -316,7 +328,7 @@ endfunction
 
 // @alloc
 function _litstring takes string a returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_String
     set _String[new] = a
     return new
@@ -324,7 +336,7 @@ endfunction
 
 // @alloc
 function _table takes nothing returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Table
     set _Int[new] = Table#_alloc()  // int keys
     set _Int2[new] = Table#_alloc() // non-int keys
@@ -335,7 +347,7 @@ endfunction
 
 // @alloc
 function _lambda takes integer a, string name returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Lambda
     set _Int[new] = a
     set _String[new] = name
@@ -344,7 +356,7 @@ endfunction
 
 // @alloc
 function _builtin takes string f returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_BuiltInFunction
     set _String[new] = f
     return new
@@ -517,7 +529,7 @@ endfunction
 
 // @alloc
 function _mod takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer tya = _Type[a]
     local integer tyb = _Type[b]
     if tya == Types#_Int and tyb == Types#_Int then
@@ -539,7 +551,7 @@ endfunction
 
 // @alloc
 function _exp takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     local integer tya = _Type[a]
     local integer tyb = _Type[b]
     set _Type[new] = Types#_Real
@@ -560,7 +572,7 @@ endfunction
 
 // @alloc
 function _shiftl takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Int
     if _Int[b] < 0 then
 	set _Int[new] = _Int[a] / R2I(Pow(2, -_Int[b]))
@@ -572,7 +584,7 @@ endfunction
 
 // @alloc
 function _shiftr takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Int
     if _Int[b] < 0 then
 	set _Int[new] = _Int[a] * R2I(Pow(2, -_Int[b]) )
@@ -584,7 +596,7 @@ endfunction
 
 // @alloc
 function _band takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Int
     set _Int[new] = BlzBitAnd( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
     return new
@@ -592,7 +604,7 @@ endfunction
 
 // @alloc
 function _bor takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Int
     set _Int[new] = BlzBitOr( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
     return new
@@ -600,7 +612,7 @@ endfunction
 
 // @alloc
 function _bxor takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Int
     set _Int[new] = BlzBitXor( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
     return new
@@ -609,7 +621,7 @@ endfunction
 
 // @alloc
 function _eq takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Bool
     set _Bool[new] = _rawequal_noalloc(a, b)
     return new
@@ -617,7 +629,7 @@ endfunction
 
 // @alloc
 function _neq takes integer a, integer b returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Bool
     set _Bool[new] = not _rawequal_noalloc(a, b)
     return new
@@ -625,17 +637,12 @@ endfunction
 
 // @alloc
 function _not takes integer v returns integer
-    local integer new = _alloc()
+    local integer new = _new()
     set _Type[new] = Types#_Bool
     set _Bool[new] = not _truthy(v)
     return new
 endfunction
 
-
-function _init takes nothing returns nothing
-    set _Nil = _alloc()
-    set _Type[_Nil] = Types#_Nil
-endfunction
 
 function _parse_digit takes string c returns integer
     if c == "F" then
@@ -873,5 +880,15 @@ function _concat takes integer a, integer b, integer interpreter returns integer
     call Print#_print("  - sb: " + sb)
     return Value#_litstring( sa + sb )
 
+endfunction
+
+
+function _init takes nothing returns nothing
+    set _recycler = _alloc() // this is the deque alloc
+    set _all_objects = _alloc() // this is the deque alloc
+    //set _recycler = Deque#_alloc()
+    //set _all_objects = Deque#_alloc()
+    //set _Nil = _new()
+    //set _Type[_Nil] = Types#_Nil
 endfunction
 

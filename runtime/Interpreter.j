@@ -311,6 +311,7 @@ function _Leave takes integer ctx, integer interpreter returns nothing
     set new_old_ctx = _ctx[_stack_top[interpreter]]
     set Context#_ip[new_old_ctx] = Context#_ip[old_ctx]
     call List#_free(head)
+    //call Context#_dealloc(ctx) // Can't do. Needs GC
     //call Print#_print("  - "+I2S(ctx)+"("+I2S(old_ctx)+") --> "+I2S(new_old_ctx))
 
     //call Context#_free(old_ctx) // this is done via GC?
@@ -443,35 +444,15 @@ function _Append takes integer ctx, integer ip returns nothing
 endfunction
 
 function _Ret takes integer ctx, integer interpreter returns boolean
-    //local integer parent_ctx = Context#_parent_call[ctx]
-    //local integer parent_ip
-    //local integer return_value
     local integer head = _stack_top[interpreter]
-    //call Print#_print("Ret")
-    //call Print#_print("  - current ctx: "+I2S(ctx))
-    //call Print#_print("  - stop interpreting: "+I2S(Context#_ret_behaviour[ctx]))
-    //call Print#_print("  - head "+I2S(head))
+    local boolean ret = Context#_ret_behaviour[ctx] == _StopInterpreter 
 
     // stack.pop()
     set _stack_top[interpreter] = List#_next[head]
     call List#_free(head)
-    return Context#_ret_behaviour[ctx] == _StopInterpreter 
-    //call Print#_print("  - next ctx: "+I2S(_ctx[_stack_top[interpreter]]))
-    //set parent_ctx_check = _ctx[_stack_top[interpreter]]
 
-    //if parent_ctx == 0 then
-    //    //call Print#_print("  - "+ I2S(ctx)+" --> "+I2S(0))
-    //    call I2S(1 / 0) // TODO
-    //    return
-    //endif
-    //set parent_ip = Context#_ip[parent_ctx] - 1
-    //set return_value = Context#_get( ctx, "$ret" )
-    ////call Builtins#_print(Value#_Int[return_value], 0, 0)
-    ////call Print#_print("  - "+ I2S(ctx)+" --> "+I2S(parent_ctx)+" ("+I2S(parent_ctx_check)+")")
-    ////call Print#_print("  - parent_ip = "+ I2S(parent_ip))
-    ////call Print#_print("  - return_value = "+ I2S(Value#_Int[return_value]))
-
-    //call Table#_set( Context#_tmps[parent_ctx], Ins#_op1[parent_ip], return_value )
+    //call Context#_dealloc( ctx ) // Can't do. Needs GC
+    return ret
 endfunction
 
 /// I guess in the future when we handle operators by firstly checking for
@@ -626,6 +607,10 @@ endfunction
 function _debug_start_main takes nothing returns nothing
     local integer interpreter = _alloc()
     local integer ctx = Context#_alloc()
+
+    call Value#_D_move_all( Value#_all_objects, Value#_recycler )
+    set Value#_Nil = Value#_new()
+    set Value#_Type[Value#_Nil] = Types#_Nil
 
     call Context#_init(ctx)
     set Context#_ip[ctx] = Ins#_Labels[0]
