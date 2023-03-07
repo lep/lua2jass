@@ -323,9 +323,13 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
     local integer ty = Value#_Type[fn]
     local integer params = Table#_get( Context#_tmps[ctx], reg_params ) // params : Value
 
+    local integer metamethod
+    local integer metatable
+    local integer metaparams
+
     local integer new_ctx
 
-    //call Print#_print("Call")
+    //call Print#_print("_Call")
 
     if ty == Types#_Lambda then
 	set new_ctx = Context#_clone(Value#_Int[fn])
@@ -339,6 +343,30 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
 	//call Print#_print("  - "+I2S(ctx)+" --> "+I2S(new_ctx))
     elseif ty == Types#_BuiltInFunction then
 	call Builtins#_dispatch_builtin(fn, params, ctx, interpreter)
+    elseif ty == Types#_Table then
+
+	// Basically a copy of the lambda case with some more checks
+	// and value extractions
+	set metatable = Value#_Int3[fn]
+	if metatable != 0 then
+	    set metamethod = Value#_gettable( metatable, Value#_litstring("__call"))
+	    if metamethod != Value#_Nil and Value#_Type[metamethod] == Types#_Lambda then
+		set metaparams = Table#_alloc()
+		call Table#_set( metaparams, 0, Table#_get( Value#_Int[params], 0 ) )
+		call Table#_set( metaparams, 1, fn )
+		call Table#_append( metaparams, Value#_Int[params], 1 )
+		set new_ctx = Context#_clone(Value#_Int[metamethod])
+		//set Context#_tmps[new_ctx] = Value#_Int[params] // this might need some refactoring
+		set Context#_tmps[new_ctx] = metaparams // this might need some refactoring
+
+		// stack.push(new_ctx)
+		set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
+		set _ctx[_stack_top[interpreter]] = new_ctx
+		return
+
+	    endif
+	endif
+	call Print#_print("Cannot call object of type "+I2S(ty))
     else
 	call Print#_print("Cannot call object of type "+I2S(ty))
     endif
@@ -410,14 +438,8 @@ function _Append takes integer ctx, integer ip returns nothing
 	call Print#_error("Target table not of type table but "+I2S(Value#_Type[val_source]))
     endif
 
-    loop
-	if Table#_has( tbl_source, k ) then
-	    call Table#_set( tbl_target, k + offset, Table#_get( tbl_source, k ))
-	else
-	    exitwhen true
-	endif
-	set k = k +1
-    endloop
+    call Table#_append( tbl_target, tbl_source, offset )
+
 endfunction
 
 function _Ret takes integer ctx, integer interpreter returns boolean

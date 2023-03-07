@@ -90,6 +90,20 @@ compileReturn reg_ret = go 1
     go idx [PrefixExp (PEFunCall fc)] = do
         reg_res <- compileFunCall fc
         emit $ B.Append idx reg_ret reg_res
+    go idx [Vararg] = do
+        reg_res <- compileExp compilePrefixExp Vararg
+        emit $ B.Append idx reg_ret reg_res
+    go idx (Vararg:es) = do
+        reg_tbl <- fresh
+        reg_one <- fresh
+        reg_res <- fresh
+        reg_idx <- fresh
+        emit $ B.LitInt reg_idx $ Text.pack $ show idx
+        emit $ B.LitInt reg_one "1"
+        emit $ B.GetLit reg_tbl "..."
+        emit $ B.GetTable reg_res reg_tbl reg_one
+        emit $ B.SetTable reg_ret reg_idx reg_res
+        go (succ idx) es
     go idx (e:es) = do
         reg_res <- compileExp compilePrefixExp' e
         reg_idx <- fresh
@@ -558,6 +572,8 @@ compileFunCall = \case
 {--
     In "normal" expressions we only want the first return value of a function,
     but in some special cases we need all return values.
+
+    This one selects only the first one.
 -}
 compilePrefixExp' = \case
     PEVar var -> compileVar var
@@ -570,6 +586,9 @@ compilePrefixExp' = \case
         pure reg_ret
     Paren e -> compileExp compilePrefixExp' e
 
+{-
+    this one returns all the values
+-}
 compilePrefixExp = \case
     PEVar var -> compileVar var
     PEFunCall funcall -> compileFunCall funcall

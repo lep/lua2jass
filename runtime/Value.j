@@ -835,13 +835,10 @@ function _tostring takes integer v, integer interpreter returns string
 	return "Native: " + I2S(_Int[v])
     elseif ty == Types#_Table then
 	//call Print#_print("  - table")
-	set metatable = Value#_Int3[v]
+	set metatable = _Int3[v]
 	if metatable != 0 then
-	    //call Print#_print("  - got a metatable "+I2S(metatable)+" _Int = "+I2S(_Int[metatable]))
-	    set metamethod = Value#_gettable( metatable, Value#_litstring("__tostring"))
+	    set metamethod = _gettable( metatable, _litstring("__tostring"))
 	    if metamethod != _Nil then
-		//call Print#_print("  - got an entry point of type "+I2S(_Type[metamethod]))
-		//call Print#_print("  - entry point chunk name: "+ _String[metamethod])
 		set v = _call1( metamethod, v, interpreter )
 		return _tostring( Table#_get( _Int[v], 1), interpreter )
 	    endif

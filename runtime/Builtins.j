@@ -55,7 +55,7 @@ function _setmetatable takes integer params_tbl, integer ctx, integer interprete
 	//call Print#_print("  - metatable is not nil")
 	set Value#_Int3[table] = metatable
     endif
-    // TODO: This seems a bit skatchy as normally lua returns lists...
+
     call Table#_set( Value#_Int[return_table], 1, table )
 endfunction
 

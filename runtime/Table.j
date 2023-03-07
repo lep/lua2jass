@@ -35,3 +35,17 @@ endfunction
 function _has takes integer tbl, integer reg returns boolean
     return HaveSavedInteger(_tbl, tbl, reg)
 endfunction
+
+function _append takes integer target, integer source, integer offset returns nothing
+    local integer k = 1
+
+    loop
+	if Table#_has( source, k ) then
+	    call Table#_set( target, k + offset, _get( source, k ))
+	else
+	    exitwhen true
+	endif
+	set k = k +1
+    endloop
+
+endfunction
