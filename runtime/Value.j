@@ -1,5 +1,5 @@
 // scope Value
-// REQUIRES Table Types List Wrap
+// REQUIRES Table Types List Call
 
 globals
 
@@ -27,8 +27,8 @@ globals
     boolean _error
 
 
-    integer _recycler
-    integer _all_objects
+    integer _recycler	 // created via _alloc
+    integer _all_objects // created via _alloc
     //#include "alloc-globals.j"
     #include "deque-alloc-globals.j"
 endglobals
@@ -798,32 +798,13 @@ function _parse_number takes string s returns real
 endfunction
 
 
-function _call1  takes integer fn, integer p1, integer interpreter returns integer
-    local integer params = Table#_alloc()
-    local integer ret = Value#_table()
-    //local integer tmp
-    //call Print#_print("_call1")
-    //call Print#_print("  - ret table: "+I2S(ret))
-    //call Print#_print("  - ret table _Int id: "+I2S(_Int[ret]))
-
-
-    call Table#_set( params, 0, ret ) // return value
-    call Table#_set( params, 1, p1 )
-
-    call Wrap#_call_function( fn, params, interpreter)
-    //return _gettable(_gettable( ret, _litint(0) ), _litint(1) )
-    //set tmp = Table#_get( Value#_Int[ret], 1 )
-    //call Print#_print("  - _Int[ret_table][1]: "+I2S(tmp))
-    //call Print#_print("  - type thereof: "+I2S(Value#_Type[tmp]))
-    return ret
-endfunction
-
 
 // @recursive
 function _tostring takes integer v, integer interpreter returns string
     local integer ty = _Type[v]
     local integer metatable
     local integer metamethod
+    local integer ret
     //call Print#_print("_tostring")
     if ty == Types#_Int then
 	//call Print#_print("  - int")
@@ -846,8 +827,9 @@ function _tostring takes integer v, integer interpreter returns string
 	if metatable != 0 then
 	    set metamethod = _gettable( metatable, _litstring("__tostring"))
 	    if metamethod != _Nil then
-		set v = _call1( metamethod, v, interpreter )
-		return _tostring( Table#_get( _Int[v], 1), interpreter )
+		set ret = _table()
+		call Call#_call1( metamethod, v, ret, interpreter )
+		return _tostring( Table#_get( _Int[ret], 1), interpreter )
 	    endif
 	endif
 	return "Table: " + I2S(_Int[v])

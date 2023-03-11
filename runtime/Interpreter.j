@@ -4,6 +4,8 @@
 globals
     #include "alloc-globals.j"
 
+    integer _GlobalInterpreter
+
     constant integer _StopInterpreter = 1
     
     // struct interpreter
@@ -608,6 +610,8 @@ function _debug_start_main takes nothing returns nothing
     local integer interpreter = _alloc()
     local integer ctx = Context#_alloc()
 
+    set _GlobalInterpreter = interpreter
+
     call Value#_D_move_all( Value#_all_objects, Value#_recycler )
     set Value#_Nil = Value#_new()
     set Value#_Type[Value#_Nil] = Types#_Nil
@@ -618,6 +622,15 @@ function _debug_start_main takes nothing returns nothing
 
     call Builtins#_register_builtin(ctx, "print", 1)
     call Builtins#_register_builtin(ctx, "setmetatable", 2)
+    call Builtins#_register_builtin(ctx, "CreateTrigger", 3)
+    call Builtins#_register_builtin(ctx, "TriggerAddAction", 4)
+    call Builtins#_register_builtin(ctx, "TriggerRegisterPlayerChatEvent", 4)
+    call Builtins#_register_builtin(ctx, "Player", 5)
+    call Builtins#_register_builtin(ctx, "GetEventPlayerChatString", 6)
+    call Builtins#_register_builtin(ctx, "CreateTimer", 7)
+    call Builtins#_register_builtin(ctx, "TimerStart", 8)
+
+
 
     set _stack_top[interpreter] = List#_cons(0)
     set _ctx[_stack_top[interpreter]] = ctx
@@ -627,7 +640,7 @@ function _debug_start_main takes nothing returns nothing
     endloop
     call Print#_print("reached end of loop")
 
-    call _free(interpreter)
+    //call _free(interpreter)
 endfunction
 
 function _call_function takes integer fn, integer params, integer interpreter returns nothing
