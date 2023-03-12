@@ -121,7 +121,11 @@ compileFn (Block stmts ret) = do
     mapM_ compileStat stmts
     case ret of
         Nothing -> pure ()
-        Just es -> compileReturn 0 es
+        Just es -> do --compileReturn 0 es
+            reg_ret <- fresh
+            emit $ B.GetLit reg_ret "$ret"
+            compileReturn reg_ret es
+
     emit B.Ret
 
 compileBlock :: Block -> CompileM ()

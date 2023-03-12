@@ -7,6 +7,7 @@ globals
     integer _GlobalInterpreter
 
     constant integer _StopInterpreter = 1
+    constant integer _CoroutineYield = 2
     
     // struct interpreter
     integer array _stack_top
@@ -224,6 +225,8 @@ function _JumpT takes integer ctx, integer ip returns nothing
 endfunction
 
 function _Local takes integer ctx, integer ip returns nothing
+    //call Print#_print("_Local")
+    //call Print#_print("  - local "+Ins#_string[ip])
     call StringTable#_set( Context#_locals[ctx], Ins#_string[ip], Value#_litnil())
 endfunction
 
@@ -240,6 +243,8 @@ endfunction
 function _SetLit takes integer ctx, integer ip returns nothing
     local integer v = Table#_get(Context#_tmps[ctx], Ins#_op1[ip])
     local string name = Ins#_string[ip]
+    //call Print#_print("_SetLit")
+    //call Print#_print("  - setting "+name+" to value "+I2S(v))
     call Context#_set( ctx, name, v)
 endfunction
 
@@ -252,7 +257,6 @@ function _GetLit takes integer ctx, integer ip returns nothing
     local string name = Ins#_string[ip]
     local integer v
     //call Print#_print("_GetLit")
-    //call Print#_print("  - name = "+name)
     if name == "$params" then
 	set v = Value#_table()
 	set Value#_Int[v] = Context#_tmps[ctx]
@@ -261,6 +265,7 @@ function _GetLit takes integer ctx, integer ip returns nothing
 	call Table#_set( Context#_tmps[ctx], reg, v)
     else
 	set v = Context#_get( ctx, name )
+	//call Print#_print("  - name "+name+" is "+I2S(v))
 	call Table#_set( Context#_tmps[ctx], reg, v)
     endif
 endfunction
@@ -297,6 +302,7 @@ function _Enter takes integer ctx, integer interpreter returns nothing
     local integer new_ctx = Context#_clone(ctx)
     //call Print#_print("Enter")
     set Context#_parent[new_ctx] = ctx
+    set Context#_type[new_ctx] = Context#_Block
     // stack.push(new_ctx)
     set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
     set _ctx[_stack_top[interpreter]] = new_ctx
@@ -338,6 +344,7 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
 	set new_ctx = Context#_clone(Value#_Int[fn])
 	// TODO: this leaks new_ctx freshly allocated _tmps
 	set Context#_tmps[new_ctx] = Value#_Int[params] // this might need some refactoring
+	set Context#_type[new_ctx] = Context#_Function
 	//set Context#_parent_call[new_ctx] = ctx
 
 	// stack.push(new_ctx)
@@ -361,6 +368,7 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
 		set new_ctx = Context#_clone(Value#_Int[metamethod])
 		//set Context#_tmps[new_ctx] = Value#_Int[params] // this might need some refactoring
 		set Context#_tmps[new_ctx] = metaparams // this might need some refactoring
+		set Context#_type[new_ctx] = Context#_Function
 
 		// stack.push(new_ctx)
 		set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
@@ -405,19 +413,21 @@ function _GetList takes integer ctx, integer ip returns nothing
     endif
 
     //call Builtins#_print(tbl_source, 0, 0)
+
+    call Table#_getlist( tbl_target, tbl_source, offset )
     
-    loop
-	//call Print#_print("  - checking key k = "+ I2S(k))
-	if Table#_has( tbl_source, k ) then
-	    //call Print#_print("  - table has key k = "+I2S(k))
-	    set v = Table#_get( tbl_source, k )
-	    //call Print#_print("  - "+Value#_tostring(v))
-	    call Table#_set( tbl_target, k - offset +1, Table#_get( tbl_source, k ))
-	else
-	    exitwhen true
-	endif
-	set k = k +1
-    endloop
+    //loop
+    //    //call Print#_print("  - checking key k = "+ I2S(k))
+    //    if Table#_has( tbl_source, k ) then
+    //        //call Print#_print("  - table has key k = "+I2S(k))
+    //        set v = Table#_get( tbl_source, k )
+    //        //call Print#_print("  - "+Value#_tostring(v))
+    //        call Table#_set( tbl_target, k - offset +1, Table#_get( tbl_source, k ))
+    //    else
+    //        exitwhen true
+    //    endif
+    //    set k = k +1
+    //endloop
 endfunction
 
 function _Append takes integer ctx, integer ip returns nothing
@@ -447,13 +457,48 @@ endfunction
 
 function _Ret takes integer ctx, integer interpreter returns boolean
     local integer head = _stack_top[interpreter]
-    local boolean ret = Context#_ret_behaviour[ctx] == _StopInterpreter 
+    local boolean ret = false
 
-    // stack.pop()
-    set _stack_top[interpreter] = List#_next[head]
-    call List#_free(head)
+    local integer tmp_table
+    local integer co_value
+    local integer base_context_returntable_value
 
-    //call Context#_dealloc( ctx ) // Can't do. Needs GC
+    local integer base_ctx
+
+    //call Print#_print("_Ret")
+    //call Print#_print("  - current ctx: "+I2S(ctx))
+
+    loop
+    exitwhen head == 0
+    exitwhen Context#_type[_ctx[head]] != Context#_Block
+	set head = List#_next[head]
+    endloop
+
+    if head != 0 then
+	set base_ctx = _ctx[head]
+	//call Print#_print("  - found matching context: "+I2S(_ctx[head]) )
+	set ret = Context#_ret_behaviour[ base_ctx ] == _StopInterpreter 
+
+	if Context#_ret_behaviour[ base_ctx ] == _CoroutineYield then
+	    //call Print#_print("  - returning from coroutine")
+	    set co_value = Builtins#_ctx2value[ base_ctx ]
+
+	    // prepend true to return table
+	    set base_context_returntable_value = Table#_get( Value#_Int[co_value], 'retr' )
+
+	    set tmp_table = Table#_alloc()
+	    call Table#_append( tmp_table, Value#_Int[base_context_returntable_value], 1 )
+	    call Table#_set( tmp_table, 1, Value#_litbool(true) )
+	    call Table#_getlist( Value#_Int[base_context_returntable_value], tmp_table, 1 )
+
+
+	    call Table#_set( Value#_Int[co_value], 'stat', 2 ) // dead
+	endif
+
+	set _stack_top[interpreter] = List#_next[head]
+    else
+	call Print#_error("  - no correct context found")
+    endif
     return ret
 endfunction
 
@@ -610,6 +655,9 @@ function _debug_start_main takes nothing returns nothing
     local integer interpreter = _alloc()
     local integer ctx = Context#_alloc()
 
+    //local integer intp_stack = List#_cons(0)
+    //set _current_interpreter[intp_stack] = interpreter
+
     set _GlobalInterpreter = interpreter
 
     call Value#_D_move_all( Value#_all_objects, Value#_recycler )
@@ -619,6 +667,13 @@ function _debug_start_main takes nothing returns nothing
     call Context#_init(ctx)
     set Context#_ip[ctx] = Ins#_Labels[0]
     set Context#_ret_behaviour[ctx] = _StopInterpreter
+    set Context#_type[ctx] = Context#_Function
+
+    set _stack_top[interpreter] = List#_cons(0)
+    set _ctx[_stack_top[interpreter]] = ctx
+
+    call Print#_print("_debug_start_main initial context: "+I2S(ctx))
+
 
     call Builtins#_register_builtin(ctx, "print", 1)
     call Builtins#_register_builtin(ctx, "setmetatable", 2)
@@ -629,11 +684,11 @@ function _debug_start_main takes nothing returns nothing
     call Builtins#_register_builtin(ctx, "GetEventPlayerChatString", 6)
     call Builtins#_register_builtin(ctx, "CreateTimer", 7)
     call Builtins#_register_builtin(ctx, "TimerStart", 8)
+    call Builtins#_register_builtin(ctx, "co_create", 9)
+    call Builtins#_register_builtin(ctx, "co_resume", 10)
+    call Builtins#_register_builtin(ctx, "co_yield", 11)
 
 
-
-    set _stack_top[interpreter] = List#_cons(0)
-    set _ctx[_stack_top[interpreter]] = ctx
 
     loop
 	exitwhen not _step(interpreter)
@@ -648,11 +703,13 @@ function _call_function takes integer fn, integer params, integer interpreter re
     local integer ret_table = Table#_get( params, 0 ) // : Value
     local integer tmp
     set Context#_tmps[ctx] = params
+    set Context#_type[ctx] = Context#_Function
     set Context#_ret_behaviour[ctx] = _StopInterpreter
 
-    //call Print#_print("_call_function")
+    call Print#_print("_call_function")
     //call Print#_print("  - previous stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
-    //call Print#_print("  - new stack top ctx: "+I2S(ctx))
+    call Print#_print("  - new stack top ctx: "+I2S(ctx))
+    call Print#_print("  - chunk name: "+ Value#_String[fn])
     //call Print#_print("  - ret table: "+I2S(ret_table))
     //call Print#_print("  - ret table _Int id: "+I2S(Value#_Int[ret_table]))
 
@@ -663,11 +720,11 @@ function _call_function takes integer fn, integer params, integer interpreter re
     loop
 	exitwhen not _step(interpreter)
     endloop
-    set tmp = Table#_get( Value#_Int[ret_table], 1 )
+    //set tmp = Table#_get( Value#_Int[ret_table], 1 )
     //call Print#_print("  - _Int[ret_table][1]: "+I2S(tmp))
     //call Print#_print("  - type thereof: "+I2S(Value#_Type[tmp]))
-    //call Print#_print("  - current stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
-    //call Print#_print("  - returning")
+    call Print#_print("  - current stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
+    call Print#_print("  - returning")
 endfunction
 
 function _call_function_wrap takes nothing returns boolean

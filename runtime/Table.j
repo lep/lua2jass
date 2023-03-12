@@ -49,3 +49,16 @@ function _append takes integer target, integer source, integer offset returns no
     endloop
 
 endfunction
+
+function _getlist takes integer target, integer source, integer offset returns nothing
+    local integer k = offset
+
+    loop
+	if _has( source, k ) then
+	    call _set( target, k - offset +1, _get( source, k ))
+	else
+	    exitwhen true
+	endif
+	set k = k +1
+    endloop
+endfunction

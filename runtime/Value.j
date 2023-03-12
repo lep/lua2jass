@@ -833,6 +833,12 @@ function _tostring takes integer v, integer interpreter returns string
 	    endif
 	endif
 	return "Table: " + I2S(_Int[v])
+    elseif ty == Types#_Bool then
+	if Value#_Bool[v] then
+	    return "true"
+	else
+	    return "false"
+	endif
     elseif ty == Types#_Nil then
 	return "nil"
     else

@@ -19,11 +19,12 @@ out/%.j: runtime/%.j
 out/%.j: auto/%.j
 	bash process.sh $^ $@ lua_ 2>/dev/null
 
-check: $(OUT)
-	pjass $$commonj Blizzard.j $$(./jorder.sh $(RUNTIME) $(AUTO)) scaffold.j
+check: war3map.j
+	pjass $$commonj Blizzard.j war3map.j
+	#pjass $$commonj Blizzard.j $$(./jorder.sh $(RUNTIME) $(AUTO)) scaffold.j
 
 war3map.j: $(OUT) scaffold.j main.j
-	pjass $$commonj Blizzard.j $$(./jorder.sh $(RUNTIME) $(AUTO)) scaffold.j main.j
+	#pjass $$commonj Blizzard.j $$(./jorder.sh $(RUNTIME) $(AUTO)) scaffold.j main.j
 	runhaskell jcat.hs $$(./jorder.sh $(RUNTIME) $(AUTO)) scaffold.j main.j > $@
 
 

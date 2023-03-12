@@ -4,6 +4,13 @@
 globals
     #include "alloc-globals.j"
 
+    constant integer _Function = 1
+    constant integer _Coroutine = 2
+    constant integer _Block = 3
+
+    integer array _type
+
+
     integer array _ip
 
     // @type StringTable
@@ -75,3 +82,13 @@ function _get takes integer ctx, string name returns integer
 endfunction
 
 
+function _dealloc takes integer ctx returns nothing
+    call StringTable#_dealloc( _locals[ctx] )
+    call Table#_free( _tmps[ctx] ) // TODO: does this work with `...` e.g.?
+    set _locals[ctx] = 0
+    set _ip[ctx] = 0
+    set _tmps[ctx] = 0
+    set _parent[ctx] = 0
+    set _ret_behaviour[ctx] = 0
+    set _chunk_name[ctx] = null
+endfunction
