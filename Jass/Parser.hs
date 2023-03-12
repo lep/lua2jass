@@ -77,7 +77,7 @@ realDot = do
 symbol = L.symbol sc
 
 reserved :: String -> Parser ()
-reserved w = (lexeme . try) (string w *> notFollowedBy alphaNumChar)
+reserved w = (lexeme . try) (string w *> notFollowedBy (char '_' <|> alphaNumChar))
 
 identifier :: Parser String
 identifier = (lexeme . try) (p >>= check)
