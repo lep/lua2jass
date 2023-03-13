@@ -481,18 +481,17 @@ function _Ret takes integer ctx, integer interpreter returns boolean
 
 	if Context#_ret_behaviour[ base_ctx ] == _CoroutineYield then
 	    //call Print#_print("  - returning from coroutine")
-	    set co_value = Builtins#_ctx2value[ base_ctx ]
+	    set co_value = Builtin/Coroutine#_ctx2value[ base_ctx ]
 
 	    // prepend true to return table
 	    set base_context_returntable_value = Table#_get( Value#_Int[co_value], 'retr' )
-
 	    set tmp_table = Table#_alloc()
 	    call Table#_append( tmp_table, Value#_Int[base_context_returntable_value], 1 )
 	    call Table#_set( tmp_table, 1, Value#_litbool(true) )
 	    call Table#_getlist( Value#_Int[base_context_returntable_value], tmp_table, 1 )
 
 
-	    call Table#_set( Value#_Int[co_value], 'stat', 2 ) // dead
+	    call Table#_set( Value#_Int[co_value], 'stat', Builtin/Coroutine#_StatusDead )
 	endif
 
 	set _stack_top[interpreter] = List#_next[head]
@@ -706,10 +705,10 @@ function _call_function takes integer fn, integer params, integer interpreter re
     set Context#_type[ctx] = Context#_Function
     set Context#_ret_behaviour[ctx] = _StopInterpreter
 
-    call Print#_print("_call_function")
-    //call Print#_print("  - previous stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
-    call Print#_print("  - new stack top ctx: "+I2S(ctx))
-    call Print#_print("  - chunk name: "+ Value#_String[fn])
+    //call Print#_print("_call_function")
+    ////call Print#_print("  - previous stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
+    //call Print#_print("  - new stack top ctx: "+I2S(ctx))
+    //call Print#_print("  - chunk name: "+ Value#_String[fn])
     //call Print#_print("  - ret table: "+I2S(ret_table))
     //call Print#_print("  - ret table _Int id: "+I2S(Value#_Int[ret_table]))
 
@@ -723,8 +722,8 @@ function _call_function takes integer fn, integer params, integer interpreter re
     //set tmp = Table#_get( Value#_Int[ret_table], 1 )
     //call Print#_print("  - _Int[ret_table][1]: "+I2S(tmp))
     //call Print#_print("  - type thereof: "+I2S(Value#_Type[tmp]))
-    call Print#_print("  - current stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
-    call Print#_print("  - returning")
+    //call Print#_print("  - current stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
+    //call Print#_print("  - returning")
 endfunction
 
 function _call_function_wrap takes nothing returns boolean
