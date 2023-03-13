@@ -1,0 +1,10 @@
+CreateTimer
+TimerStart
+ForGroup
+ForForce
+Condition
+Filter
+TriggerAddAction
+CreateTrigger
+EnumDestructablesInRect
+EnumItemsInRect

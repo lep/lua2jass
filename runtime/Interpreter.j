@@ -21,11 +21,11 @@ endglobals
 // @alloc
 function _numbercontext takes integer v returns integer
     local integer ty = Value#_Type[v]
-    if ty == Types#_Int then
+    if ty == Jass#_integer then
 	return v
-    elseif ty == Types#_Real then
+    elseif ty == Jass#_real then
 	return v
-    elseif ty == Types#_String then
+    elseif ty == Jass#_string then
 	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
 	if Value#_error then
 	    call Print#_error("Error: cannot coerce string to number")
@@ -41,10 +41,10 @@ endfunction
 // @alloc
 function _integercontext takes integer v returns integer
     local integer ty = Value#_Type[v]
-    if ty == Types#_Int then
+    if ty == Jass#_integer then
 	return v
-    elseif ty == Types#_String then
-	set ty = Types#_Real
+    elseif ty == Jass#_string then
+	set ty = Jass#_real
 	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
 	if Value#_error then
 	    call Print#_error("Error: cannot coerce string to number")
@@ -52,7 +52,7 @@ function _integercontext takes integer v returns integer
 	endif
     endif
 
-    if ty == Types#_Real then
+    if ty == Jass#_real then
 	set ty = R2I(Value#_Real[v]) // casually reusing variable
 	if Value#_Real[v] == ty then
 	    return Value#_litint(ty)
@@ -277,6 +277,9 @@ endfunction
 function _LitString takes integer ctx, integer ip returns nothing
     local integer reg = Ins#_op1[ip]
     local integer value = Value#_litstring( Ins#_string[ip] )
+    //call Print#_print("_LitString")
+    //call Print#_print("  - from ins: "+Ins#_string[ip])
+    //call Print#_print("  - from value: "+Value#_String[value])
     call Table#_set( Context#_tmps[ctx], reg, value )
 endfunction
 
@@ -686,6 +689,7 @@ function _debug_start_main takes nothing returns nothing
     call Builtins#_register_builtin(ctx, "co_create", 9)
     call Builtins#_register_builtin(ctx, "co_resume", 10)
     call Builtins#_register_builtin(ctx, "co_yield", 11)
+    call Builtins#_register_builtin(ctx, "TriggerExecute", 12)
 
 
 

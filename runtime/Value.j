@@ -36,6 +36,14 @@ endglobals
 #include "deque-alloc.j"
 //#include "alloc.j"
 
+function _B2S takes boolean b returns string
+    if b then
+	return "|cffabcd00true|r"
+    else
+	return "|cffabcd00false|r"
+    endif
+endfunction
+
 function _new takes nothing returns integer
     return _fresh( _all_objects, _recycler )
     //local integer this = Deque#_fresh( _all_objects, _recycler )
@@ -52,11 +60,11 @@ endfunction
 function _neg takes integer v returns integer
     local integer new = _new()
     local integer ty = _Type[v]
-    if ty == Types#_Int then
-	set _Type[new] = Types#_Int
+    if ty == Jass#_integer then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = - _Int[v]
-    elseif ty == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = - _Real[v]
     else
 	call Print#_error("_neg: should not happen")
@@ -67,7 +75,7 @@ endfunction
 // @alloc
 function _complement takes integer v returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Int
+    set _Type[new] = Jass#_integer
     set _Int[new] = - _Int[v] -1
     return new
 endfunction
@@ -78,17 +86,17 @@ function _add takes integer a, integer b returns integer
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
-	set _Type[new] = Types#_Int
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = _Int[a] + _Int[b]
-    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_a == Jass#_integer  and ty_b == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Int[a] + _Real[b]
-    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_b == Jass#_integer  and ty_a == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Real[a] + _Int[b]
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Real[a] + _Real[b]
     else
 	call Print#_error("_add: Error. Should not happen")
@@ -102,17 +110,17 @@ function _sub takes integer a, integer b returns integer
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
-	set _Type[new] = Types#_Int
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = _Int[a] - _Int[b]
-    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_a == Jass#_integer  and ty_b == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Int[a] - _Real[b]
-    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_b == Jass#_integer  and ty_a == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Real[a] - _Int[b]
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Real[a] - _Real[b]
     else
 	call Print#_error("_sub: Error. Should not happen")
@@ -126,17 +134,17 @@ function _mul takes integer a, integer b returns integer
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
-	set _Type[new] = Types#_Int
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = _Int[a] * _Int[b]
-    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_a == Jass#_integer  and ty_b == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Int[a] * _Real[b]
-    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_b == Jass#_integer  and ty_a == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Real[a] * _Int[b]
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Real[a] * _Real[b]
     else
 	call Print#_error("_mul: Error. Should not happen")
@@ -151,17 +159,17 @@ function _div takes integer a, integer b returns integer
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
-	set _Type[new] = Types#_Real
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
+	set _Type[new] = Jass#_real
 	set _Real[new] = I2R(_Int[a]) / _Int[b]
-    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_a == Jass#_integer  and ty_b == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Int[a] / _Real[b]
-    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_b == Jass#_integer  and ty_a == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Real[a] / _Int[b]
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _Real[a] / _Real[b]
     else
 	call Print#_error("_div: Error. Should not happen")
@@ -199,17 +207,17 @@ function _idiv takes integer a, integer b returns integer
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
-	set _Type[new] = Types#_Int
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = _floor( I2R(_Int[a]) / _Int[b] )
-    elseif ty_a == Types#_Int  and ty_b == Types#_Real then
-	set _Type[new] = Types#_Int
+    elseif ty_a == Jass#_integer  and ty_b == Jass#_real then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = _floor( _Int[a] / _Real[b] )
-    elseif ty_b == Types#_Int  and ty_a == Types#_Real then
-	set _Type[new] = Types#_Int
+    elseif ty_b == Jass#_integer  and ty_a == Jass#_real then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = _floor( _Real[a] / _Int[b] )
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
-	set _Type[new] = Types#_Int
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = _floor( _Real[a] / _Real[b] )
     else
 	call Print#_error("_idiv: Error. Should not happen")
@@ -222,15 +230,15 @@ function _gt takes integer a, integer b returns integer
     local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
-    set _Type[new] = Types#_Bool
+    set _Type[new] = Jass#_boolean
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
 	set _Bool[new] = _Int[a] > _Int[b]
-    elseif ty_a == Types#_Int and ty_b == Types#_Real then
+    elseif ty_a == Jass#_integer and ty_b == Jass#_real then
 	set _Bool[new] = _Int[a] > _Real[b]
-    elseif ty_b == Types#_Int and ty_a == Types#_Real then
+    elseif ty_b == Jass#_integer and ty_a == Jass#_real then
 	set _Bool[new] = _Real[a] > _Int[b]
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
 	set _Bool[new] = _Real[a] > _Real[b]
     else
 	call Print#_error("_gt: Error. Should not happen")
@@ -243,15 +251,15 @@ function _gte takes integer a, integer b returns integer
     local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
-    set _Type[new] = Types#_Bool
+    set _Type[new] = Jass#_boolean
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
 	set _Bool[new] = _Int[a] >= _Int[b]
-    elseif ty_a == Types#_Int and ty_b == Types#_Real then
+    elseif ty_a == Jass#_integer and ty_b == Jass#_real then
 	set _Bool[new] = _Int[a] >= _Real[b]
-    elseif ty_b == Types#_Int and ty_a == Types#_Real then
+    elseif ty_b == Jass#_integer and ty_a == Jass#_real then
 	set _Bool[new] = _Real[a] >= _Int[b]
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
 	set _Bool[new] = _Real[a] >= _Real[b]
     else
 	call Print#_error("_gte: Error. Should not happen")
@@ -264,15 +272,15 @@ function _lt takes integer a, integer b returns integer
     local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
-    set _Type[new] = Types#_Bool
+    set _Type[new] = Jass#_boolean
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
 	set _Bool[new] = _Int[a] < _Int[b]
-    elseif ty_a == Types#_Int and ty_b == Types#_Real then
+    elseif ty_a == Jass#_integer and ty_b == Jass#_real then
 	set _Bool[new] = _Int[a] < _Real[b]
-    elseif ty_b == Types#_Int and ty_a == Types#_Real then
+    elseif ty_b == Jass#_integer and ty_a == Jass#_real then
 	set _Bool[new] = _Real[a] < _Int[b]
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
 	set _Bool[new] = _Real[a] < _Real[b]
     else
 	call Print#_error("_lt: Error. Should not happen")
@@ -285,15 +293,15 @@ function _lte takes integer a, integer b returns integer
     local integer new = _new()
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
-    set _Type[new] = Types#_Bool
+    set _Type[new] = Jass#_boolean
 
-    if ty_a == Types#_Int and ty_b == Types#_Int then
+    if ty_a == Jass#_integer and ty_b == Jass#_integer then
 	set _Bool[new] = _Int[a] <= _Int[b]
-    elseif ty_a == Types#_Int and ty_b == Types#_Real then
+    elseif ty_a == Jass#_integer and ty_b == Jass#_real then
 	set _Bool[new] = _Int[a] <= _Real[b]
-    elseif ty_b == Types#_Int and ty_a == Types#_Real then
+    elseif ty_b == Jass#_integer and ty_a == Jass#_real then
 	set _Bool[new] = _Real[a] <= _Int[b]
-    elseif ty_a == Types#_Real and ty_b == Types#_Real then
+    elseif ty_a == Jass#_real and ty_b == Jass#_real then
 	set _Bool[new] = _Real[a] <= _Real[b]
     else
 	call Print#_error("_lte: Error. Should not happen")
@@ -305,7 +313,7 @@ endfunction
 // @alloc
 function _litint takes integer a returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Int
+    set _Type[new] = Jass#_integer
     set _Int[new] = a
     return new
 endfunction
@@ -313,7 +321,7 @@ endfunction
 // @alloc
 function _litfloat takes real a returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Real
+    set _Type[new] = Jass#_real
     set _Real[new] = a
     return new
 endfunction
@@ -321,7 +329,7 @@ endfunction
 // @alloc
 function _litbool takes boolean a returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Bool
+    set _Type[new] = Jass#_boolean
     set _Bool[new] = a
     return new
 endfunction
@@ -329,7 +337,7 @@ endfunction
 // @alloc
 function _litstring takes string a returns integer
     local integer new = _new()
-    set _Type[new] = Types#_String
+    set _Type[new] = Jass#_string
     set _String[new] = a
     return new
 endfunction
@@ -365,7 +373,7 @@ endfunction
 // @noalloc
 function _truthy takes integer a returns boolean
     local integer ty = _Type[a]
-    if ty == Types#_Bool then
+    if ty == Jass#_boolean then
 	return _Bool[a]
     elseif ty == Types#_Nil then
 	return false
@@ -379,19 +387,19 @@ endfunction
 function _rawequal_noalloc takes integer a, integer b returns boolean
     local integer type_a = _Type[a]
     local integer type_b = _Type[b]
-    if type_a == Types#_Int and type_b == Types#_Int then
+    if type_a == Jass#_integer and type_b == Jass#_integer then
 	return _Int[a] == _Int[b]
-    elseif type_a == Types#_Real and type_b == Types#_Real then
+    elseif type_a == Jass#_real and type_b == Jass#_real then
 	// TODO: see if wc3 lua has the same quirky behavior for
 	// real comparison
 	return not (_Real[a] != _Real[b]) 
-    elseif type_a == Types#_Int and type_b == Types#_Real then
+    elseif type_a == Jass#_integer and type_b == Jass#_real then
 	return I2R(_Int[a]) == _Real[b]
-    elseif type_b == Types#_Int and type_a == Types#_Real then
+    elseif type_b == Jass#_integer and type_a == Jass#_real then
 	return I2R(_Int[b]) == _Real[a]
-    elseif type_a == Types#_Bool and type_b == Types#_Bool then
+    elseif type_a == Jass#_boolean and type_b == Jass#_boolean then
 	return _Bool[a] == _Bool[b]
-    elseif type_a == Types#_String and type_b == Types#_String then
+    elseif type_a == Jass#_string and type_b == Jass#_string then
 	return _String[a] == _String[b]
     elseif type_a == Types#_Table and type_b == Types#_Table then
 	return _Int[a] == _Int[b]
@@ -408,17 +416,17 @@ endfunction
 function _hash takes integer v returns integer
     // TODO: use some random seed
     local integer ty = _Type[v]
-    if ty == Types#_String then
+    if ty == Jass#_string then
 	return StringHash(_String[v])
     elseif ty == Types#_Table then
 	return _Int[v] * 23 + 1337
-    elseif ty == Types#_Real then
+    elseif ty == Jass#_real then
 	return R2I( _Real[v] * 16180.33 )
     elseif ty == Types#_Lambda then
 	return _Int[v]
     elseif ty == Types#_BuiltInFunction then // TODO: we want to use IDs anyway i think
 	return StringHash(_String[v])
-    elseif ty == Types#_Bool then
+    elseif ty == Jass#_boolean then
 	if _Bool[v] then
 	    return 0x11111111
 	else
@@ -446,11 +454,11 @@ function _settable takes integer t, integer k, integer v returns nothing
 	call Print#_error("table index is nil")
     endif
 
-    if ty == Types#_Int then
+    if ty == Jass#_integer then
 //	call Print#_print("  - int key: "+I2S(_Int[k]))
 //	call Print#_print("  - _Int table id: "+I2S(_Int[t]))
 	call Table#_set( _Int[t], _Int[k], v )
-    elseif ty == Types#_Real and _Real[k] == R2I(_Real[k]) then
+    elseif ty == Jass#_real and _Real[k] == R2I(_Real[k]) then
 	//call Print#_print("  - real type but int key")
 	call Table#_set( _Int[t], R2I(_Real[k]), v )
     else
@@ -483,10 +491,10 @@ function _gettable takes integer v, integer k returns integer
     local integer tbl
     local integer ls
     //call Print#_print("_gettable")
-    if ty == Types#_Int then
+    if ty == Jass#_integer then
 	//call Print#_print("  - int key")
 	return Table#_get( _Int[v], _Int[k] )
-    elseif ty == Types#_Real and _Real[k] == R2I(_Real[k]) then
+    elseif ty == Jass#_real and _Real[k] == R2I(_Real[k]) then
 	//call Print#_print("  - real type but int key")
 	return Table#_get( _Int[v], R2I(_Real[k]) )
     else
@@ -509,7 +517,7 @@ function _len takes integer v returns integer
     local integer k = 1
     local integer tbl
     //call Print#_print("_len")
-    if ty == Types#_String then
+    if ty == Jass#_string then
 	return Value#_litint(StringLength(_String[v]))
     elseif ty == Types#_Table then
 	set tbl = _Int[v]
@@ -532,17 +540,17 @@ function _mod takes integer a, integer b returns integer
     local integer new = _new()
     local integer tya = _Type[a]
     local integer tyb = _Type[b]
-    if tya == Types#_Int and tyb == Types#_Int then
-	set _Type[new] = Types#_Int
+    if tya == Jass#_integer and tyb == Jass#_integer then
+	set _Type[new] = Jass#_integer
 	set _Int[new] = _mod_int(_Int[a],  _Int[b])
-    elseif tya == Types#_Real and tyb == Types#_Real then
-	set _Type[new] = Types#_Real
+    elseif tya == Jass#_real and tyb == Jass#_real then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _mod_real( _Real[a], _Real[b] )
-    elseif tya == Types#_Real and tyb == Types#_Int then
-	set _Type[new] = Types#_Real
+    elseif tya == Jass#_real and tyb == Jass#_integer then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _mod_real( _Real[a], _Int[b] )
-    elseif tyb == Types#_Real and tya == Types#_Int then
-	set _Type[new] = Types#_Real
+    elseif tyb == Jass#_real and tya == Jass#_integer then
+	set _Type[new] = Jass#_real
 	set _Real[new] = _mod_real( _Int[a], _Real[b] )
     endif
 
@@ -554,14 +562,14 @@ function _exp takes integer a, integer b returns integer
     local integer new = _new()
     local integer tya = _Type[a]
     local integer tyb = _Type[b]
-    set _Type[new] = Types#_Real
-    if tya == Types#_Int and tyb == Types#_Int then
+    set _Type[new] = Jass#_real
+    if tya == Jass#_integer and tyb == Jass#_integer then
 	set _Real[new] = Pow(_Int[a], _Int[b])
-    elseif tya == Types#_Real and tyb == Types#_Real then
+    elseif tya == Jass#_real and tyb == Jass#_real then
 	set _Real[new] = Pow( _Real[a], _Real[b] )
-    elseif tya == Types#_Real and tyb == Types#_Int then
+    elseif tya == Jass#_real and tyb == Jass#_integer then
 	set _Real[new] = Pow( _Real[a], _Int[b] )
-    elseif tyb == Types#_Real and tya == Types#_Int then
+    elseif tyb == Jass#_real and tya == Jass#_integer then
 	set _Real[new] = Pow( _Int[a], _Real[b] )
     endif
 
@@ -573,7 +581,7 @@ endfunction
 // @alloc
 function _shiftl takes integer a, integer b returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Int
+    set _Type[new] = Jass#_integer
     if _Int[b] < 0 then
 	set _Int[new] = _Int[a] / R2I(Pow(2, -_Int[b]))
     else
@@ -585,7 +593,7 @@ endfunction
 // @alloc
 function _shiftr takes integer a, integer b returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Int
+    set _Type[new] = Jass#_integer
     if _Int[b] < 0 then
 	set _Int[new] = _Int[a] * R2I(Pow(2, -_Int[b]) )
     else
@@ -597,7 +605,7 @@ endfunction
 // @alloc
 function _band takes integer a, integer b returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Int
+    set _Type[new] = Jass#_integer
     set _Int[new] = BlzBitAnd( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
     return new
 endfunction
@@ -605,7 +613,7 @@ endfunction
 // @alloc
 function _bor takes integer a, integer b returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Int
+    set _Type[new] = Jass#_integer
     set _Int[new] = BlzBitOr( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
     return new
 endfunction
@@ -613,7 +621,7 @@ endfunction
 // @alloc
 function _bxor takes integer a, integer b returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Int
+    set _Type[new] = Jass#_integer
     set _Int[new] = BlzBitXor( _Int[a], _Int[b] ) // TODO: pre 1.31 patches
     return new
 endfunction
@@ -622,7 +630,7 @@ endfunction
 // @alloc
 function _eq takes integer a, integer b returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Bool
+    set _Type[new] = Jass#_boolean
     set _Bool[new] = _rawequal_noalloc(a, b)
     return new
 endfunction
@@ -630,7 +638,7 @@ endfunction
 // @alloc
 function _neq takes integer a, integer b returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Bool
+    set _Type[new] = Jass#_boolean
     set _Bool[new] = not _rawequal_noalloc(a, b)
     return new
 endfunction
@@ -638,7 +646,7 @@ endfunction
 // @alloc
 function _not takes integer v returns integer
     local integer new = _new()
-    set _Type[new] = Types#_Bool
+    set _Type[new] = Jass#_boolean
     set _Bool[new] = not _truthy(v)
     return new
 endfunction
@@ -806,13 +814,14 @@ function _tostring takes integer v, integer interpreter returns string
     local integer metamethod
     local integer ret
     //call Print#_print("_tostring")
-    if ty == Types#_Int then
+    //call Print#_print("  - type: "+I2S(ty))
+    if ty == Jass#_integer then
 	//call Print#_print("  - int")
 	return I2S(_Int[v])
-    elseif ty == Types#_Real then
+    elseif ty == Jass#_real then
 	//call Print#_print("  - real")
 	return R2S(_Real[v])
-    elseif ty == Types#_String then
+    elseif ty == Jass#_string then
 	//call Print#_print("  - string")
 	return _String[v]
     elseif ty == Types#_Lambda then
@@ -833,7 +842,7 @@ function _tostring takes integer v, integer interpreter returns string
 	    endif
 	endif
 	return "Table: " + I2S(_Int[v])
-    elseif ty == Types#_Bool then
+    elseif ty == Jass#_boolean then
 	if Value#_Bool[v] then
 	    return "true"
 	else
@@ -853,12 +862,12 @@ function _concat takes integer a, integer b, integer interpreter returns integer
     local integer ty_b = _Type[b]
     local string sa
     local string sb
-    if ty_a != Types#_String then
+    if ty_a != Jass#_string then
 	set sa = Value#_tostring(a, interpreter)
     else
 	set sa = _String[a]
     endif
-    if ty_b != Types#_String then
+    if ty_b != Jass#_string then
 	set sb = Value#_tostring(b, interpreter)
     else
 	set sb = _String[b]

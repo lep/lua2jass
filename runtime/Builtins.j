@@ -1,7 +1,9 @@
 // scope Builtins
 // REQUIRES Print Value Table Context
-// REQUIRES Builtin/Trigger Builtin/Player Builtin/Timer
+// REQUIRES Builtin/Trigger Builtin/Timer
 // REQUIRES Builtin/Coroutine
+// REQUIRES Natives
+
 
 globals
 endglobals
@@ -75,15 +77,15 @@ function _dispatch_builtin takes integer value, integer params, integer ctx, int
     elseif name == "setmetatable" then
 	call _setmetatable(tbl, ctx, interpreter)
     elseif name == "Player" then
-	call Builtin/Player#_Player(tbl, ctx, interpreter)
+	call Natives#_Player(tbl, ctx, interpreter)
     elseif name == "CreateTrigger" then
 	call Builtin/Trigger#_CreateTrigger(tbl, ctx, interpreter)
     elseif name == "TriggerAddAction" then
 	call Builtin/Trigger#_TriggerAddAction(tbl, ctx, interpreter)
     elseif name == "TriggerRegisterPlayerChatEvent" then
-	call Builtin/Trigger#_TriggerRegisterPlayerChatEvent(tbl, ctx, interpreter)
+	call Natives#_TriggerRegisterPlayerChatEvent(tbl, ctx, interpreter)
     elseif name == "GetEventPlayerChatString" then
-	call Builtin/Trigger#_GetEventPlayerChatString(tbl, ctx, interpreter)
+	call Natives#_GetEventPlayerChatString(tbl, ctx, interpreter)
     elseif name == "TimerStart" then
 	call Builtin/Timer#_TimerStart(tbl, ctx, interpreter)
     elseif name == "CreateTimer" then
@@ -94,6 +96,8 @@ function _dispatch_builtin takes integer value, integer params, integer ctx, int
 	call Builtin/Coroutine#_yield(tbl, ctx, interpreter)
     elseif name == "co_resume" then
 	call Builtin/Coroutine#_resume(tbl, ctx, interpreter)
+    elseif name == "TriggerExecute" then
+	call Natives#_TriggerExecute(tbl, ctx, interpreter)
     else
         call Print#_print("Unknown builtin function "+name)
     endif

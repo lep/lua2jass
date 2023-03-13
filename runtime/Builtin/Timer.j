@@ -2,12 +2,10 @@
 // REQUIRES Print Value Table Jass 
 
 globals
-    timer array _value2timer
     // Table
     integer _timer2value
 endglobals
 
-// TODO: autogenerate this stuff
 function _CreateTimer takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer v = Value#_table()
     local timer t = CreateTimer()
@@ -17,10 +15,10 @@ function _CreateTimer takes integer tbl, integer ctx, integer interpreter return
     //call Print#_print("_CreateTimer")
     //call Print#_print("  - timer obj: "+I2S(v))
 
-    call Table#_set( Value#_Int[v], 'type', Jass#_Timer )
+    call Table#_set( Value#_Int[v], 'type', Jass#_timer )
     call Table#_set( Value#_Int[v], 'intp', interpreter )
 
-    set _value2timer[v] = t
+    set Natives#_value2timer[v] = t
     call Table#_set( _timer2value, GetHandleId(t), v )
 
     call Table#_set( Value#_Int[return_table], 1, v )
@@ -46,11 +44,11 @@ function _TimerStart takes integer tbl, integer ctx, integer interpreter returns
 
     local real timeout
     // TODO: generic
-    if Value#_Type[real_value] == Types#_Int then
+    if Value#_Type[real_value] == Jass#_integer then
 	set timeout = Value#_Int[real_value]
-    elseif Value#_Type[real_value] == Types#_Real then
+    elseif Value#_Type[real_value] == Jass#_real then
 	set timeout = Value#_Real[real_value]
-    elseif Value#_Type[real_value] == Types#_String then
+    elseif Value#_Type[real_value] == Jass#_string then
 	set timeout = Value#_parse_number(Value#_String[real_value])
     else
 	call Print#_error("Cannot convert to number")
@@ -62,7 +60,7 @@ function _TimerStart takes integer tbl, integer ctx, integer interpreter returns
 
     call Table#_set( Value#_Int[timer_value], 'func', fn_value )
 
-    call TimerStart( _value2timer[timer_value], timeout, Value#_Bool[bool_value], function _execute_timer_action )
+    call TimerStart( Natives#_value2timer[timer_value], timeout, Value#_Bool[bool_value], function _execute_timer_action )
 
 endfunction
 
