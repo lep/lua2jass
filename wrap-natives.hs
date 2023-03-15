@@ -59,7 +59,7 @@ extractJassValue idx (ty, _) =
     --in Var $ AVar globalName var
 
 convert2 :: String -> [ Ast String Expr] -> Ast String Expr
-convert2 ty arg = Call ( "_convert2" <> ty ) arg
+convert2 ty = Call $ "_convert2" <> ty
 
 
 basicSetter :: Map String (Ast String Expr -> Ast String x)
@@ -181,13 +181,13 @@ compile skip (Programm ts) = do
         jassAst = Programm $ zipWith mkConstant [1..] $ Set.toList allTypes'
 
 
-    bracket (openFile "auto/Jass.j" WriteMode) (hClose) $ \fh -> do
-        hPutStrLn fh $ "// scope Jass"
+    withFile "auto/Jass.j" WriteMode $ \fh -> do
+        hPutStrLn fh "// scope Jass"
         Builder.hPutBuilder fh $ pretty jassAst
         
 
-    bracket (openFile "auto/Natives.j" WriteMode) (hClose) $ \fh -> do
-        hPutStrLn fh $ "// scope Natives"
+    withFile "auto/Natives.j" WriteMode $ \fh -> do
+        hPutStrLn fh "// scope Natives"
         hPutStrLn fh "// REQUIRES Table Value Jass"
         Builder.hPutBuilder fh $ pretty nativeAst
 

@@ -88,7 +88,7 @@ instance ToJSON Bytecode where
         Leave -> toJSON ["leave"]
         GetLit r t -> toJSON ("getlit", r, t)
         LitString r t -> toJSON ("lit", r, t)
-        LitInt r t -> toJSON ("lit", r, (readT t) :: Int)
+        LitInt r t -> toJSON ("lit", r, readT t :: Int)
         LitFloat r t -> toJSON ("lit", r, t)
         LitBool r t -> toJSON ("lit", r, t)
         LitNil r -> toJSON ("nil", r)
@@ -240,7 +240,7 @@ toJass x i =
         , setins i "Ins#_Label"
         ]
     Fun lbl name ->
-        [ Jass.Set (Jass.AVar "Ins#_Labels" $ (neg $ intlit lbl)) (intlit $ succ i)
+        [ Jass.Set (Jass.AVar "Ins#_Labels" (neg $ intlit lbl)) (intlit $ succ i)
         , setstr i name
         ]
     Jump lbl ->
