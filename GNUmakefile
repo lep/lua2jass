@@ -43,3 +43,4 @@ update-wc3: war3map.j
 
 clean:
 	find out/ -type f -delete
+	find auto/ -type f -delete

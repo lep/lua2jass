@@ -80,7 +80,7 @@ mkWrapper (Native _ name args ret) =
   where
     name' = '_':name
     args' = [("integer", "tbl"), ("integer", "ctx"), ("integer", "interpreter")]
-    argLocals = map toLocal [1..]
+    argLocals = zipWith toLocal [1..] args
 
     call :: Ast String x
     call = Call name $ zipWith extractJassValue [1..] args 
@@ -105,8 +105,8 @@ return_table =
 local_value :: Ast String Stmt
 local_value = Local $ SDef Normal "v" "integer" Nothing
 
-toLocal :: Int -> Ast String Stmt
-toLocal idx =
+toLocal :: Int -> w -> Ast String Stmt
+toLocal idx _ =
     let tbl_call = Call "Table#_get" [ tbl_arg, idx_arg ]
         tbl_arg = Var $ SVar "tbl"
         idx_arg = Int $ show idx
@@ -179,7 +179,6 @@ compile skip (Programm ts) = do
 
         nativeAst = Programm $ globals ++ converters ++ wrappers
         jassAst = Programm $ zipWith mkConstant [1..] $ Set.toList allTypes'
-
 
     withFile "auto/Jass.j" WriteMode $ \fh -> do
         hPutStrLn fh "// scope Jass"
