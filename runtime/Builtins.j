@@ -98,6 +98,16 @@ function _dispatch_builtin takes integer value, integer params, integer ctx, int
 	call Builtin/Coroutine#_resume(tbl, ctx, interpreter)
     elseif name == "TriggerExecute" then
 	call Natives#_TriggerExecute(tbl, ctx, interpreter)
+    elseif name == "GetTriggeringTrigger" then
+	call Natives#_GetTriggeringTrackable(tbl, ctx, interpreter)
+    elseif name == "GetHandleId" then
+	call Natives#_GetHandleId(tbl, ctx, interpreter)
+    elseif name == "GetExpiredTimer" then
+	call Natives#_GetExpiredTimer(tbl, ctx, interpreter)
+    elseif name == "DestroyTimer" then
+	call Natives#_DestroyTimer(tbl, ctx, interpreter)
+    elseif name == "DisplayTimedTextToPlayer" then
+	call Natives#_DisplayTimedTextToPlayer(tbl, ctx, interpreter)
     else
         call Print#_print("Unknown builtin function "+name)
     endif

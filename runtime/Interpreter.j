@@ -690,6 +690,11 @@ function _debug_start_main takes nothing returns nothing
     call Builtins#_register_builtin(ctx, "co_resume", 10)
     call Builtins#_register_builtin(ctx, "co_yield", 11)
     call Builtins#_register_builtin(ctx, "TriggerExecute", 12)
+    call Builtins#_register_builtin(ctx, "GetTriggeringTrigger", 13)
+    call Builtins#_register_builtin(ctx, "GetHandleId", 14)
+    call Builtins#_register_builtin(ctx, "GetExpiredTimer", 15)
+    call Builtins#_register_builtin(ctx, "DestroyTimer", 16)
+    call Builtins#_register_builtin(ctx, "DisplayTimedTextToPlayer", 17)
 
 
 

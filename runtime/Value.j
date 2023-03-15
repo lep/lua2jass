@@ -806,6 +806,19 @@ function _parse_number takes string s returns real
 endfunction
 
 
+function _tostring_concat takes integer v returns string
+    local integer ty = _Type[v]
+    if ty == Jass#_integer then
+        return I2S(_Int[v])
+    elseif ty == Jass#_real then
+        return R2S(_Real[v])
+    elseif ty == Jass#_string then
+        return _String[v]
+    endif
+
+    call Print#_error("Cannot convert to string")
+    return ""
+endfunction
 
 // @recursive
 function _tostring takes integer v, integer interpreter returns string
@@ -813,25 +826,17 @@ function _tostring takes integer v, integer interpreter returns string
     local integer metatable
     local integer metamethod
     local integer ret
-    //call Print#_print("_tostring")
-    //call Print#_print("  - type: "+I2S(ty))
     if ty == Jass#_integer then
-	//call Print#_print("  - int")
 	return I2S(_Int[v])
     elseif ty == Jass#_real then
-	//call Print#_print("  - real")
 	return R2S(_Real[v])
     elseif ty == Jass#_string then
-	//call Print#_print("  - string")
 	return _String[v]
     elseif ty == Types#_Lambda then
-	//call Print#_print("  - lambda")
 	return "Fun: "+ I2S(_Int[v])
     elseif ty == Types#_BuiltInFunction then
-	//call Print#_print("  - native")
 	return "Native: " + I2S(_Int[v])
     elseif ty == Types#_Table then
-	//call Print#_print("  - table")
 	set metatable = _Int3[v]
 	if metatable != 0 then
 	    set metamethod = _gettable( metatable, _litstring("__tostring"))
@@ -860,23 +865,82 @@ endfunction
 function _concat takes integer a, integer b, integer interpreter returns integer
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
-    local string sa
-    local string sb
-    if ty_a != Jass#_string then
-	set sa = Value#_tostring(a, interpreter)
-    else
-	set sa = _String[a]
-    endif
-    if ty_b != Jass#_string then
-	set sb = Value#_tostring(b, interpreter)
-    else
-	set sb = _String[b]
-    endif
-    call Print#_print("_concat")
-    call Print#_print("  - sa: " + sa)
-    call Print#_print("  - sb: " + sb)
+    local string sa = _tostring_concat(a)
+    local string sb = _tostring_concat(b)
     return Value#_litstring( sa + sb )
+endfunction
 
+// @noalloc
+function _getJassType takes integer v returns integer
+    if _Type[v] != Types#_Table then
+        call Print#_error("Not a Warcraft type")
+        return 0
+    endif
+    return Table#_get( _Int[v], 'type' )
+endfunction
+
+function _2int takes integer v, integer interpreter returns integer
+    local integer ty = _Type[v]
+    local real r
+    if ty == Jass#_integer then
+        return _Int[v]
+    elseif ty == Jass#_string then
+	set ty = Jass#_real
+	set r = _parse_number(_String[v])
+	if _error then
+	    call Print#_error("Error: cannot coerce string to number")
+            return 0
+	endif
+    endif
+
+    if ty == Jass#_real then
+        set ty = R2I(_Real[v])
+        if _Real[v] == ty then
+            return ty
+        endif
+    endif
+
+    call Print#_error("Not of type integer")
+    return 0
+endfunction
+
+function _2real takes integer v, integer interpreter returns real
+    local real r
+    if _Type[v] == Jass#_integer then
+        return _Int[v] + 0.0
+    elseif _Type[v] == Jass#_real then
+        return _Real[v]
+    elseif _Type[v] == Jass#_string then
+        set r = _parse_number(_String[v])
+        if _error then
+	    call Print#_error("Error: cannot coerce string to number")
+            return 0.0
+        endif
+        return r
+    endif
+    call Print#_error("Not of type real")
+    return 0.0
+endfunction
+
+function _2string takes integer v, integer interpreter returns string
+    return _tostring(v, interpreter)
+
+    // TODO: check of __tostring is called here
+    if _Type[v] != Jass#_string then
+        call Print#_error("Not of type string")
+        return ""
+    endif
+    return _String[v]
+endfunction
+
+function _2boolean takes integer v, integer interpreter returns boolean
+    return _truthy(v)
+
+    if _Type[v] != Jass#_boolean then
+        call Print#_error("Not of type boolean")
+        return false
+    endif
+    return _Bool[v]
 endfunction
 
 
