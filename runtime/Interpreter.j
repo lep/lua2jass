@@ -1,5 +1,5 @@
 // scope Interpreter
-// REQUIRES Value Ins Context Table Print Builtins
+// REQUIRES Value Ins Context Table Print Dispatch
 
 globals
     #include "alloc-globals.j"
@@ -355,7 +355,7 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
 	set _ctx[_stack_top[interpreter]] = new_ctx
 	//call Print#_print("  - "+I2S(ctx)+" --> "+I2S(new_ctx))
     elseif ty == Types#_BuiltInFunction then
-	call Builtins#_dispatch_builtin(fn, params, ctx, interpreter)
+	call Dispatch#_dispatch(Value#_Int[fn], Value#_Int[params], ctx, interpreter)
     elseif ty == Types#_Table then
 
 	// Basically a copy of the lambda case with some more checks
@@ -676,27 +676,7 @@ function _debug_start_main takes nothing returns nothing
 
     call Print#_print("_debug_start_main initial context: "+I2S(ctx))
 
-
-    call Builtins#_register_builtin(ctx, "print", 1)
-    call Builtins#_register_builtin(ctx, "setmetatable", 2)
-    call Builtins#_register_builtin(ctx, "CreateTrigger", 3)
-    call Builtins#_register_builtin(ctx, "TriggerAddAction", 4)
-    call Builtins#_register_builtin(ctx, "TriggerRegisterPlayerChatEvent", 4)
-    call Builtins#_register_builtin(ctx, "Player", 5)
-    call Builtins#_register_builtin(ctx, "GetEventPlayerChatString", 6)
-    call Builtins#_register_builtin(ctx, "CreateTimer", 7)
-    call Builtins#_register_builtin(ctx, "TimerStart", 8)
-    call Builtins#_register_builtin(ctx, "co_create", 9)
-    call Builtins#_register_builtin(ctx, "co_resume", 10)
-    call Builtins#_register_builtin(ctx, "co_yield", 11)
-    call Builtins#_register_builtin(ctx, "TriggerExecute", 12)
-    call Builtins#_register_builtin(ctx, "GetTriggeringTrigger", 13)
-    call Builtins#_register_builtin(ctx, "GetHandleId", 14)
-    call Builtins#_register_builtin(ctx, "GetExpiredTimer", 15)
-    call Builtins#_register_builtin(ctx, "DestroyTimer", 16)
-    call Builtins#_register_builtin(ctx, "DisplayTimedTextToPlayer", 17)
-
-
+    call Dispatch#_register(ctx)
 
     loop
 	exitwhen not _step(interpreter)

@@ -1,8 +1,5 @@
 // scope Builtins
 // REQUIRES Print Value Table Context
-// REQUIRES Builtin/Trigger Builtin/Timer
-// REQUIRES Builtin/Coroutine
-// REQUIRES Natives
 
 
 globals
@@ -65,59 +62,3 @@ function _setmetatable takes integer params_tbl, integer ctx, integer interprete
 
     call Table#_set( Value#_Int[return_table], 1, table )
 endfunction
-
-function _dispatch_builtin takes integer value, integer params, integer ctx, integer interpreter returns nothing
-    local string name = Value#_String[value]
-    local integer tbl = Value#_Int[params]
-    //call Print#_print("_dispatch_builtin("+I2S(value)+","+I2S(params)+","+I2S(ctx)+","+I2S(reg_res)+")")
-    //call Print#_print("  - tbl = "+I2S(tbl))
-    //call Print#_print("  - name = "+name)
-    if name == "print" then
-        call _print(tbl, ctx, interpreter)
-    elseif name == "setmetatable" then
-	call _setmetatable(tbl, ctx, interpreter)
-    elseif name == "Player" then
-	call Natives#_Player(tbl, ctx, interpreter)
-    elseif name == "CreateTrigger" then
-	call Builtin/Trigger#_CreateTrigger(tbl, ctx, interpreter)
-    elseif name == "TriggerAddAction" then
-	call Builtin/Trigger#_TriggerAddAction(tbl, ctx, interpreter)
-    elseif name == "TriggerRegisterPlayerChatEvent" then
-	call Natives#_TriggerRegisterPlayerChatEvent(tbl, ctx, interpreter)
-    elseif name == "GetEventPlayerChatString" then
-	call Natives#_GetEventPlayerChatString(tbl, ctx, interpreter)
-    elseif name == "TimerStart" then
-	call Builtin/Timer#_TimerStart(tbl, ctx, interpreter)
-    elseif name == "CreateTimer" then
-	call Builtin/Timer#_CreateTimer(tbl, ctx, interpreter)
-    elseif name == "co_create" then
-	call Builtin/Coroutine#_create(tbl, ctx, interpreter)
-    elseif name == "co_yield" then
-	call Builtin/Coroutine#_yield(tbl, ctx, interpreter)
-    elseif name == "co_resume" then
-	call Builtin/Coroutine#_resume(tbl, ctx, interpreter)
-    elseif name == "TriggerExecute" then
-	call Natives#_TriggerExecute(tbl, ctx, interpreter)
-    elseif name == "GetTriggeringTrigger" then
-	call Natives#_GetTriggeringTrackable(tbl, ctx, interpreter)
-    elseif name == "GetHandleId" then
-	call Natives#_GetHandleId(tbl, ctx, interpreter)
-    elseif name == "GetExpiredTimer" then
-	call Natives#_GetExpiredTimer(tbl, ctx, interpreter)
-    elseif name == "DestroyTimer" then
-	call Natives#_DestroyTimer(tbl, ctx, interpreter)
-    elseif name == "DisplayTimedTextToPlayer" then
-	call Natives#_DisplayTimedTextToPlayer(tbl, ctx, interpreter)
-    else
-        call Print#_print("Unknown builtin function "+name)
-    endif
-endfunction
-
-
-function _register_builtin takes integer ctx, string name, integer id returns nothing
-    call Context#_set( ctx, name, Value#_builtin(name) )
-endfunction
-
-function _init takes nothing returns nothing
-endfunction
-

@@ -363,9 +363,10 @@ function _lambda takes integer a, string name returns integer
 endfunction
 
 // @alloc
-function _builtin takes string f returns integer
+function _builtin takes integer id, string f returns integer
     local integer new = _new()
     set _Type[new] = Types#_BuiltInFunction
+    set _Int[new] = id
     set _String[new] = f
     return new
 endfunction
@@ -884,13 +885,13 @@ function _2int takes integer v, integer interpreter returns integer
     local real r
     if ty == Jass#_integer then
         return _Int[v]
-    elseif ty == Jass#_string then
-	set ty = Jass#_real
-	set r = _parse_number(_String[v])
-	if _error then
-	    call Print#_error("Error: cannot coerce string to number")
-            return 0
-	endif
+//    elseif ty == Jass#_string then
+//	set ty = Jass#_real
+//	set r = _parse_number(_String[v])
+//	if _error then
+//	    call Print#_error("Error: cannot coerce string to number")
+//            return 0
+//	endif
     endif
 
     if ty == Jass#_real then
@@ -910,20 +911,20 @@ function _2real takes integer v, integer interpreter returns real
         return _Int[v] + 0.0
     elseif _Type[v] == Jass#_real then
         return _Real[v]
-    elseif _Type[v] == Jass#_string then
-        set r = _parse_number(_String[v])
-        if _error then
-	    call Print#_error("Error: cannot coerce string to number")
-            return 0.0
-        endif
-        return r
+    //elseif _Type[v] == Jass#_string then
+    //    set r = _parse_number(_String[v])
+    //    if _error then
+    //        call Print#_error("Error: cannot coerce string to number")
+    //        return 0.0
+    //    endif
+    //    return r
     endif
     call Print#_error("Not of type real")
     return 0.0
 endfunction
 
 function _2string takes integer v, integer interpreter returns string
-    return _tostring(v, interpreter)
+    //return _tostring(v, interpreter)
 
     // TODO: check of __tostring is called here
     if _Type[v] != Jass#_string then
@@ -934,7 +935,7 @@ function _2string takes integer v, integer interpreter returns string
 endfunction
 
 function _2boolean takes integer v, integer interpreter returns boolean
-    return _truthy(v)
+    //return _truthy(v)
 
     if _Type[v] != Jass#_boolean then
         call Print#_error("Not of type boolean")

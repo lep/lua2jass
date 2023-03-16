@@ -7,7 +7,7 @@ RUNTIME += runtime/Builtin/Trigger.j
 RUNTIME += runtime/Builtin/Timer.j
 
 AUTO := auto/Auto.j
-AUTO += auto/Natives.j auto/Jass.j
+AUTO += auto/Natives.j auto/Jass.j auto/Dispatch.j
 
 
 OUT	:= $(patsubst runtime/%, out/%, $(RUNTIME))
@@ -15,10 +15,13 @@ OUT	+= $(patsubst auto/%, out/%, $(AUTO))
 
 .PHONY: check clean
 
+runtime.dot: $(RUNTIME) $(AUTO)
+	bash jdigraph.sh $(RUNTIME) $(AUTO) > "$@"
+
 auto/Auto.j: test.lua
 	runhaskell compile.hs test.lua --jass > auto/Auto.j
 
-auto/Jass.j auto/Natives.j: common.j wrap-natives.hs dont-compile.txt
+auto/Jass.j auto/Natives.j auto/Dispatch.j: common.j wrap-natives.hs dont-compile.txt
 	runhaskell wrap-natives.hs common.j dont-compile.txt
 
 out/%.j: runtime/%.j
