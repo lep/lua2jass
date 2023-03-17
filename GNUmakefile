@@ -5,9 +5,9 @@ RUNTIME += runtime/Builtin/Coroutine.j
 
 RUNTIME += runtime/Builtin/Trigger.j
 RUNTIME += runtime/Builtin/Timer.j
+RUNTIME += runtime/Builtin/Boolexpr.j
 
-AUTO := auto/Auto.j
-AUTO += auto/Natives.j auto/Jass.j auto/Dispatch.j
+AUTO := auto/Auto.j auto/Natives.j auto/Jass.j auto/Dispatch.j
 
 
 OUT	:= $(patsubst runtime/%, out/%, $(RUNTIME))
@@ -21,8 +21,8 @@ runtime.dot: $(RUNTIME) $(AUTO)
 auto/Auto.j: test.lua
 	runhaskell compile.hs test.lua --jass > auto/Auto.j
 
-auto/Jass.j auto/Natives.j auto/Dispatch.j: common.j wrap-natives.hs dont-compile.txt
-	runhaskell wrap-natives.hs common.j dont-compile.txt
+auto/Jass.j auto/Natives.j auto/Dispatch.j: common.j wrap-natives.hs
+	runhaskell wrap-natives.hs common.j
 
 out/%.j: runtime/%.j
 	perl process.pl $^ $@ lua_ 2>/dev/null

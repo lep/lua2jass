@@ -139,6 +139,13 @@ getAllChildren base m = do
 
 
 mkConvert :: MonoidMap String (Set String) -> String -> Ast String Toplevel
+mkConvert types "boolexpr" =
+    Function Normal "_convert2boolexpr" [("integer", "v"), ("integer", "interpreter")] "boolexpr"
+        [ Set (SVar "Builtin/Boolexpr#_v") $ Var $ SVar "v"
+        , Set (SVar "Builtin/Boolexpr#_i") $ Var $ SVar "interpreter"
+        , Set (SVar "Builtin/Boolexpr#_r") $ Call "Value#_table" []
+        , Return . Just . Var $ SVar "Builtin/Boolexpr#_filter"
+        ]
 mkConvert types ty =
     Function Normal ("_convert2" <> ty) [("integer", "v"), ("integer", "interpreter")] ty body
   where
@@ -186,14 +193,17 @@ mkRegister names =
         Call "Context#_set" [ Var $ SVar "ctx", String name,
             Call "Value#_builtin" [ Int $ show idx, String name ] ]
 
-compile :: Set String -> Ast String Programm -> IO ()
-compile skip (Programm ts) = do
+compile :: Ast String Programm -> IO ()
+compile (Programm ts) = do
     let natives = filter ((`Set.notMember` skip) . getName) $ filter isNative ts
         allTypes = Set.unions $ map getBothTypes ts
         allTypes' = allTypes <> Set.fromList [ "integer", "real", "string", "boolean" ]
         wrappers = map mkWrapper natives
         globals = map mkGlobal $ Set.toList allTypes
 
+        skip = Set.fromList $ map fst extraFunctions
+
+        
         extraFunctions =
             [ ("co_create", "Builtin/Coroutine#_create")
             , ("co_yield", "Builtin/Coroutine#_yield")
@@ -206,6 +216,17 @@ compile skip (Programm ts) = do
             , ("TimerStart", "Builtin/Timer#_TimerStart")
             , ("CreateTrigger", "Builtin/Trigger#_CreateTrigger")
             , ("TriggerAddAction", "Builtin/Trigger#_TriggerAddAction")
+            
+            , ("EnumDestructablesInRect", "Builtin/Boolexpr#_EnumDestructablesInRect")
+            , ("EnumItemsInRect", "Builtin/Boolexpr#_EnumItemsInRect")
+            , ("Filter", "Builtin/Boolexpr#_Filter")
+            , ("Condition", "Builtin/Boolexpr#_Condition")
+            , ("And", "Builtin/Boolexpr#_And")
+            , ("Or", "Builtin/Boolexpr#_Or")
+            , ("Not", "Builtin/Boolexpr#_Not")
+
+            , ("ForForce", "Builtins#_ForForce")
+            , ("ForGroup", "Builtins#_ForGroup")
             ]
 
         converters = map (mkConvert $ parent2children ts) $ Set.toList allTypes
@@ -222,7 +243,7 @@ compile skip (Programm ts) = do
     withFile "auto/Dispatch.j" WriteMode $ \fh -> do
         hPutStrLn fh "// scope Dispatch"
         hPutStrLn fh "// REQUIRES Builtins"
-        hPutStrLn fh "// REQUIRES Builtin/Coroutine Builtin/Trigger Builtin/Timer"
+        hPutStrLn fh "// REQUIRES Builtin/Coroutine Builtin/Trigger Builtin/Timer Builtin/Boolexpr"
         hPutStrLn fh "// REQUIRES Value Context Natives"
         Builder.hPutBuilder fh $ pretty dispatchAst
 
@@ -252,9 +273,8 @@ binsearch n = go . zip [1..]
 
 main :: IO ()
 main = do
-    [commonj, dont] <- getArgs
-    dontCompile <- Set.fromList . lines <$> readFile dont
+    [commonj] <- getArgs
     eAst <- parseFromFile programm commonj 
     case eAst of
         Left err -> putStrLn $ errorBundlePretty err
-        Right ast -> void $ compile dontCompile ast
+        Right ast -> void $ compile ast

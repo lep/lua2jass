@@ -57,6 +57,7 @@ function InitCustomTriggers takes nothing returns nothing
 
     call lua_Builtin__Trigger_init()
     call lua_Builtin__Timer_init()
+    call lua_Builtin__Boolexpr_init()
 
     //set Scope = lua_Deque_alloc()
     //set Recycler = lua_Deque_alloc()

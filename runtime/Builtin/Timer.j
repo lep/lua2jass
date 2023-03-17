@@ -1,5 +1,5 @@
 // scope Builtin/Timer
-// REQUIRES Print Value Table Jass 
+// REQUIRES Print Value Table Jass Natives
 
 globals
     // Table
@@ -42,25 +42,9 @@ function _TimerStart takes integer tbl, integer ctx, integer interpreter returns
     local integer bool_value = Table#_get(tbl, 3)
     local integer fn_value = Table#_get(tbl, 4)
 
-    local real timeout
-    // TODO: generic
-    if Value#_Type[real_value] == Jass#_integer then
-	set timeout = Value#_Int[real_value]
-    elseif Value#_Type[real_value] == Jass#_real then
-	set timeout = Value#_Real[real_value]
-    elseif Value#_Type[real_value] == Jass#_string then
-	set timeout = Value#_parse_number(Value#_String[real_value])
-    else
-	call Print#_error("Cannot convert to number")
-    endif
-
-    //call Print#_print("_TimerStart")
-    //call Print#_print("  - timer obj: "+I2S(timer_value))
-    //call Print#_print("  - timeout: "+R2S(timeout))
-
     call Table#_set( Value#_Int[timer_value], 'func', fn_value )
 
-    call TimerStart( Natives#_value2timer[timer_value], timeout, Value#_Bool[bool_value], function _execute_timer_action )
+    call TimerStart( Natives#_convert2timer(timer_value, interpreter), Value#_2real(real_value, interpreter), Value#_2boolean(bool_value, interpreter), function _execute_timer_action )
 
 endfunction
 

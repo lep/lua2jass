@@ -1,5 +1,5 @@
 // scope Builtins
-// REQUIRES Print Value Table Context
+// REQUIRES Print Value Table Context Natives Builtin/Boolexpr
 
 
 globals
@@ -61,4 +61,29 @@ function _setmetatable takes integer params_tbl, integer ctx, integer interprete
     endif
 
     call Table#_set( Value#_Int[return_table], 1, table )
+endfunction
+
+
+function _ForForce takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer arg1 = Table#_get(tbl, 1)
+    local integer arg2 = Table#_get(tbl, 2)
+
+    set Builtin/Boolexpr#_code_r = r
+    set Builtin/Boolexpr#_code_i = interpreter
+    set Builtin/Boolexpr#_code_v = arg2
+
+    call ForForce( Natives#_convert2force(arg1, interpreter), function Builtin/Boolexpr#_cb)
+endfunction
+
+function _ForGroup takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer arg1 = Table#_get(tbl, 1)
+    local integer arg2 = Table#_get(tbl, 2)
+
+    set Builtin/Boolexpr#_code_r = r
+    set Builtin/Boolexpr#_code_i = interpreter
+    set Builtin/Boolexpr#_code_v = arg2
+
+    call ForGroup( Natives#_convert2group(arg1, interpreter), function Builtin/Boolexpr#_cb)
 endfunction
