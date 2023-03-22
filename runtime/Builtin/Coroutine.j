@@ -2,16 +2,23 @@
 // REQUIRES Print Table Context Value
 
 globals
-    // coroutines
-    integer array _ctx2value // for coroutine usage
+    integer array _ctx2value
     constant integer _StatusSuspended = 1
     constant integer _StatusDead = 2
+
+    integer array _interpreter
+    integer array _context
+    integer array _base_frame
+    integer array _stop_frame
+    integer array _status
+    integer array _return_yield
+    integer array _return_resume
 endglobals
 
 function _create takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer fn_value = Table#_get( tbl, 1 ) // _Lambda
     local integer returntable_value = Table#_get( tbl, 0 )
-    local integer co_value = Value#_table() 
+    local integer co_value = Value#_coroutine() 
     local integer new_ctx = Context#_clone( Value#_Int[fn_value] )
 
     local integer base_frame = List#_cons( 0 )
@@ -24,14 +31,13 @@ function _create takes integer tbl, integer ctx, integer interpreter returns not
     set Context#_ret_behaviour[new_ctx] = Interpreter#_CoroutineYield
     set Context#_type[new_ctx] = Context#_Coroutine
 
-    // With this amount of data we might put it into arrays
-    call Table#_set( Value#_Int[co_value], 'type', 'crtn' )
-    call Table#_set( Value#_Int[co_value], 'intp', interpreter )
-    call Table#_set( Value#_Int[co_value], 'cntx', new_ctx )
-    call Table#_set( Value#_Int[co_value], 'base', base_frame )
-    call Table#_set( Value#_Int[co_value], 'stop', base_frame )
-    call Table#_set( Value#_Int[co_value], 'stat', _StatusSuspended )
-    call Table#_set( Value#_Int[co_value], 'rety', Context#_tmps[new_ctx] )
+    set _interpreter[co_value]	= interpreter
+    set _context[co_value]	= new_ctx
+    set _base_frame[co_value]	= base_frame
+    set _stop_frame[co_value]	= base_frame
+    set _status[co_value]	= _StatusSuspended
+    set _return_yield[co_value]	= Context#_tmps[new_ctx]
+    set _return_resume[co_value]= 0
 
     call Table#_set( Value#_Int[returntable_value], 1, co_value )
 
@@ -57,10 +63,11 @@ function _yield takes integer tbl, integer ctx, integer interpreter returns noth
     if head != 0 then
         //call Print#_print("  - found something")
 	set co_value = _ctx2value[Interpreter#_ctx[head]]
-	call Table#_set( Value#_Int[co_value], 'stop', stop_point )
-	call Table#_set( Value#_Int[co_value], 'rety', Value#_Int[returntable_value] )
 
-	set resume_returntable_value = Table#_get( Value#_Int[co_value], 'retr' )
+	set _stop_frame[co_value]   = stop_point
+	set _return_yield[co_value] = Value#_Int[returntable_value]
+	set resume_returntable_value = _return_resume[co_value]
+
 	call Table#_append( Value#_Int[resume_returntable_value], tbl, 1 )
 
         set Interpreter#_stack_top[interpreter] = List#_next[head]
@@ -73,11 +80,10 @@ endfunction
 function _resume takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer returntable_value = Table#_get( tbl, 0 )
     local integer co_value = Table#_get( tbl, 1 )
-    local integer co_status_int = Table#_get( Value#_Int[co_value], 'stat' )
-
-    local integer base_frame = Table#_get( Value#_Int[co_value], 'base' )
-    local integer stop_frame = Table#_get( Value#_Int[co_value], 'stop' )
-    local integer yield_returntable_table = Table#_get( Value#_Int[co_value], 'rety' )
+    local integer co_status_int = _status[co_value]
+    local integer base_frame = _base_frame[co_value]
+    local integer stop_frame = _stop_frame[co_value]
+    local integer yield_returntable_table = _return_yield[co_value]
 
     local integer base_ctx = Interpreter#_ctx[base_frame]
 
@@ -95,7 +101,7 @@ function _resume takes integer tbl, integer ctx, integer interpreter returns not
 
 	// set both return table for the next yield and the contexts return
 	// table for possible returns
-	call Table#_set( Value#_Int[co_value], 'retr', returntable_value )
+	set _return_resume[co_value] = returntable_value
 	call StringTable#_set( Context#_locals[base_ctx], "$ret", returntable_value )
 
 	set List#_next[base_frame] = Interpreter#_stack_top[interpreter]

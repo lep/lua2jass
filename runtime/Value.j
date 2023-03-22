@@ -348,7 +348,14 @@ function _table takes nothing returns integer
     set _Type[new] = Types#_Table
     set _Int[new] = Table#_alloc()  // int keys
     set _Int2[new] = Table#_alloc() // non-int keys
-    set _Int3[new] = 0
+    set _Int3[new] = 0 // metatable
+    return new
+endfunction
+
+// @alloc
+function _coroutine takes nothing returns integer
+    local integer new = _new()
+    set _Type[new] = Types#_Coroutine
     return new
 endfunction
 
@@ -806,6 +813,30 @@ function _parse_number takes string s returns real
     return sign * (res + frac) * Pow(10, exp*exp_sign)
 endfunction
 
+function _tostring_debug takes integer v returns string
+    local integer ty = _Type[v]
+    if ty == Jass#_integer then
+        return "Int: "+I2S(_Int[v])
+    elseif ty == Jass#_real then
+        return "Real: "+R2S(_Real[v])
+    elseif ty == Jass#_string then
+        return "String: "+_String[v]
+    elseif ty == Jass#_boolean then
+        return "Bool: "+_B2S(_Bool[v])
+    elseif ty == Types#_Lambda then
+	return "Lambda: "+I2S(v)+","+_String[v]+","+I2S(_Int[v])
+    elseif ty == Types#_BuiltInFunction then
+	return "Native: "+I2S(v)+","+_String[v]+","+I2S(_Int[v])
+    elseif ty == Types#_Nil then
+	return "Nil: "+I2S(v)
+    elseif ty == Types#_Table then
+	return "Table: "+I2S(v)+","+I2S(Table#_get( _Int[v], 'type' ))
+    elseif ty == Types#_Coroutine then
+	return "Thread: "+I2S(v)
+    else
+	return "Unk: "+I2S(v)
+    endif
+endfunction
 
 function _tostring_concat takes integer v returns string
     local integer ty = _Type[v]
@@ -837,6 +868,8 @@ function _tostring takes integer v, integer interpreter returns string
 	return "Fun: "+ I2S(_Int[v])
     elseif ty == Types#_BuiltInFunction then
 	return "Native: " + I2S(_Int[v])
+    elseif ty == Types#_Coroutine then
+	return "Thread: " + I2S(v)
     elseif ty == Types#_Table then
 	set metatable = _Int3[v]
 	if metatable != 0 then

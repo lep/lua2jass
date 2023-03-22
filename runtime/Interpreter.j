@@ -487,14 +487,14 @@ function _Ret takes integer ctx, integer interpreter returns boolean
 	    set co_value = Builtin/Coroutine#_ctx2value[ base_ctx ]
 
 	    // prepend true to return table
-	    set base_context_returntable_value = Table#_get( Value#_Int[co_value], 'retr' )
+	    set base_context_returntable_value = Builtin/Coroutine#_return_resume[co_value]
 	    set tmp_table = Table#_alloc()
 	    call Table#_append( tmp_table, Value#_Int[base_context_returntable_value], 1 )
 	    call Table#_set( tmp_table, 1, Value#_litbool(true) )
 	    call Table#_getlist( Value#_Int[base_context_returntable_value], tmp_table, 1 )
 
 
-	    call Table#_set( Value#_Int[co_value], 'stat', Builtin/Coroutine#_StatusDead )
+	    set Builtin/Coroutine#_status[co_value] = Builtin/Coroutine#_StatusDead
 	endif
 
 	set _stack_top[interpreter] = List#_next[head]
