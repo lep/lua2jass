@@ -19,7 +19,7 @@ endglobals
 function _trigger_execute_all_actions takes nothing returns nothing
     local integer trigger_value = Table#_get( _trigger2value, GetHandleId(GetTriggeringTrigger()) )
     local integer ls = _trigger_actions[trigger_value]
-    local integer interpreter = Table#_get( Value#_Int[trigger_value], 'intp' )
+    local integer interpreter = Value#_Int2[trigger_value]
     local integer ret = Value#_table() // not used
     local integer fn_value
 
@@ -30,7 +30,7 @@ function _trigger_execute_all_actions takes nothing returns nothing
 
     loop
     exitwhen ls == 0
-	set fn_value = Table#_get( Value#_Int[_trigger_action[ls]], 'func' )
+	set fn_value = Value#_Int2[_trigger_action[ls]]
 	call Call#_call0( fn_value, ret, interpreter )
 	set ls = List#_next[ls]
     endloop
@@ -38,7 +38,7 @@ function _trigger_execute_all_actions takes nothing returns nothing
 endfunction
 
 function _CreateTrigger takes integer tbl, integer ctx, integer interpreter returns nothing
-    local integer v = Value#_table()
+    local integer v = Value#_foreign(Jass#_trigger)
     local trigger t = CreateTrigger()
 
     local integer return_table = Table#_get( tbl, 0 )
@@ -48,8 +48,7 @@ function _CreateTrigger takes integer tbl, integer ctx, integer interpreter retu
     //call Print#_print("  - interpreter: "+I2S(interpreter))
     //call Print#_print("  - trigger obj: "+I2S(GetHandleId(t)))
 
-    call Table#_set( Value#_Int[v], 'type', Jass#_trigger )
-    call Table#_set( Value#_Int[v], 'intp', interpreter )
+    set Value#_Int2[v] = interpreter
 
     set Natives#_value2trigger[v] = t
     call Table#_set( _trigger2value, GetHandleId(t), v )
@@ -70,7 +69,7 @@ function _TriggerAddAction takes integer tbl, integer ctx, integer interpreter r
     local integer fn_value = Table#_get(tbl, 2)
     local integer returntable_value = Table#_get(tbl, 0)
 
-    local integer triggeraction_value = Value#_table()
+    local integer triggeraction_value = Value#_foreign(Jass#_triggeraction)
 
     local integer ls = _trigger_actions[trigger_value]
     //call Print#_print("_TriggerAddAction")
@@ -80,8 +79,7 @@ function _TriggerAddAction takes integer tbl, integer ctx, integer interpreter r
     set _trigger_action[ls] = triggeraction_value
     set _trigger_actions[trigger_value] = ls
 
-    call Table#_set( Value#_Int[triggeraction_value], 'type', Jass#_triggeraction )
-    call Table#_set( Value#_Int[triggeraction_value], 'func', fn_value )
+    set Value#_Int2[triggeraction_value] = fn_value
 
     call Table#_set( Value#_Int[returntable_value], 1, triggeraction_value )
     //call Print#_print("  - done")

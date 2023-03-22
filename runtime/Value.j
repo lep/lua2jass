@@ -359,6 +359,14 @@ function _coroutine takes nothing returns integer
     return new
 endfunction
 
+// @alloc
+function _foreign takes integer ty returns integer
+    local integer new = _new()
+    set _Type[new] = Types#_Foreign
+    set _Int[new] = ty
+    return new
+endfunction
+
 
 // @alloc
 function _lambda takes integer a, string name returns integer
@@ -833,6 +841,8 @@ function _tostring_debug takes integer v returns string
 	return "Table: "+I2S(v)+","+I2S(Table#_get( _Int[v], 'type' ))
     elseif ty == Types#_Coroutine then
 	return "Thread: "+I2S(v)
+    elseif ty == Types#_Foreign then
+	return "Foreign: "+I2S(v)
     else
 	return "Unk: "+I2S(v)
     endif
@@ -870,6 +880,8 @@ function _tostring takes integer v, integer interpreter returns string
 	return "Native: " + I2S(_Int[v])
     elseif ty == Types#_Coroutine then
 	return "Thread: " + I2S(v)
+    elseif ty == Types#_Foreign then
+	return "Foreign: " + I2S(v)
     elseif ty == Types#_Table then
 	set metatable = _Int3[v]
 	if metatable != 0 then
@@ -906,11 +918,11 @@ endfunction
 
 // @noalloc
 function _getJassType takes integer v returns integer
-    if _Type[v] != Types#_Table then
+    if _Type[v] != Types#_Foreign then
         call Print#_error("Not a Warcraft type")
         return 0
     endif
-    return Table#_get( _Int[v], 'type' )
+    return _Int[v]
 endfunction
 
 function _2int takes integer v, integer interpreter returns integer

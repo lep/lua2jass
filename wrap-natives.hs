@@ -91,9 +91,10 @@ mkWrapper (Native _ name args ret) =
         ty | Just setter <- Map.lookup ty basicSetter ->
             [ Call "Table#_set" [ Var $ AVar "Value#_Int" (Var $ SVar "r"), Int "1", setter call] ]
         _ ->
-            [ Set (SVar "v") $ Call "Value#_table" []
+            [ Set (SVar "v") $ Call "Value#_foreign" [ Var $ SVar $ "Jass#_" <> ret ]
             , Set (AVar (varOfType ret) (Var $ SVar "v")) call
-            , Call "Table#_set" [ Var $ AVar "Value#_Int" (Var $ SVar "v"), Int "'type'", Var $ SVar $ "Jass#_" <> ret ]
+            --, Set (AVar "Value#_Int" (Var $ SVar "v")) ()
+            --, Call "Table#_set" [ Var $ AVar "Value#_Int" (Var $ SVar "v"), Int "'type'", Var $ SVar $ "Jass#_" <> ret ]
             , Call "Table#_set" [ Var $ AVar "Value#_Int" (Var $ SVar "r"), Int "1", Var $ SVar "v" ]
             ]
 
@@ -227,6 +228,12 @@ compile (Programm ts) = do
 
             , ("ForForce", "Builtins#_ForForce")
             , ("ForGroup", "Builtins#_ForGroup")
+
+            -- TODO:
+            --  - DestroyBoolexpr, TriggerAddCondition, TriggerRegisterEnterRegion
+            --  - TriggerRegisterLeaveRegion, TriggerRegisterPlayerUnitEvent,
+            --  - TriggerRegisterFilterUnitEvent, TriggerRegisterUnitInRange,
+            --  - TriggerEvaluate, SaveBooleanExprHandle
             ]
 
         converters = map (mkConvert $ parent2children ts) $ Set.toList allTypes
