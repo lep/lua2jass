@@ -1,5 +1,5 @@
 // scope Interpreter
-// REQUIRES Value Ins Context Table Print Dispatch
+// REQUIRES Value Ins Context Table Print Dispatch Deque
 
 globals
     #include "alloc-globals.j"
@@ -9,7 +9,6 @@ globals
     constant integer _StopInterpreter = 1
     constant integer _CoroutineYield = 2
     
-    // struct interpreter
     integer array _stack_top
 
 
@@ -231,8 +230,8 @@ function _Local takes integer ctx, integer ip returns nothing
 endfunction
 
 function _Lambda takes integer ctx, integer ip returns nothing
-    local integer new_ctx = Context#_alloc()
-    call Context#_init(new_ctx)
+    local integer new_ctx = Context#_new()
+    call Context#_initialize(new_ctx)
     set Context#_parent[new_ctx] = ctx
     set Context#_chunk_name[new_ctx] = Ins#_string[ip]
     set Context#_ip[new_ctx] = Ins#_Labels[ - Ins#_op1[ip] ]
@@ -539,7 +538,7 @@ function _step takes integer interpreter returns boolean
     //call Print#_print("_step ("+I2S(ctx)+")")
 
     if ctx == 0 or ip == 0 or ins == 0 then
-	call Print#_print("  - stopping via 0")
+	call Print#_print("  - stopping via: ctx="+I2S(ctx)+",ip="+I2S(ip)+",ins="+I2S(ins))
 	return false
     endif
 
@@ -655,18 +654,14 @@ endfunction
 
 function _debug_start_main takes nothing returns nothing
     local integer interpreter = _alloc()
-    local integer ctx = Context#_alloc()
-
-    //local integer intp_stack = List#_cons(0)
-    //set _current_interpreter[intp_stack] = interpreter
+    local integer ctx = Context#_new()
 
     set _GlobalInterpreter = interpreter
 
-    call Value#_D_move_all( Value#_all_objects, Value#_recycler )
     set Value#_Nil = Value#_new()
     set Value#_Type[Value#_Nil] = Types#_Nil
 
-    call Context#_init(ctx)
+    call Context#_initialize(ctx)
     set Context#_ip[ctx] = Ins#_Labels[0]
     set Context#_ret_behaviour[ctx] = _StopInterpreter
     set Context#_type[ctx] = Context#_Function
@@ -683,7 +678,6 @@ function _debug_start_main takes nothing returns nothing
     endloop
     call Print#_print("reached end of loop")
 
-    //call _free(interpreter)
 endfunction
 
 function _call_function takes integer fn, integer params, integer interpreter returns nothing

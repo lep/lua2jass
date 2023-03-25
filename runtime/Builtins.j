@@ -87,3 +87,4 @@ function _ForGroup takes integer tbl, integer ctx, integer interpreter returns n
 
     call ForGroup( Natives#_convert2group(arg1, interpreter), function Builtin/Boolexpr#_cb)
 endfunction
+

@@ -12,3 +12,8 @@ function _error takes string s returns integer
     return 0
 endfunction
 
+function _warn takes string s returns integer
+    call DisplayTimedTextToPlayer(Player(0), 0, 0, 60, "|c00ffff00"+s+"|r")
+    return 0
+endfunction
+

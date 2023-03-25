@@ -48,11 +48,13 @@ function InitCustomTriggers takes nothing returns nothing
 	call TimerStart(CreateTimer(), 0.0, false, function start_interpreter_a)
     endif
 
+    call lua_Context_init()
     call lua_Auto_init()
     call lua_Ins_init()
     call lua_Value_init()
     call lua_Wrap_init()
     call lua_Interpreter_init()
+    call lua_GC_init()
     //call lua_Builtins_init()
 
     call lua_Builtin__Trigger_init()

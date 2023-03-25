@@ -21,20 +21,14 @@ globals
     // constant
     integer _Nil
 
-
-    //
-
     boolean _error
 
+    boolean array _mark
 
-    integer _recycler	 // created via _alloc
-    integer _all_objects // created via _alloc
-    //#include "alloc-globals.j"
-    #include "deque-alloc-globals.j"
+    #include "alloc-globals.j"
 endglobals
 
-#include "deque-alloc.j"
-//#include "alloc.j"
+#include "alloc.j"
 
 function _B2S takes boolean b returns string
     if b then
@@ -45,9 +39,7 @@ function _B2S takes boolean b returns string
 endfunction
 
 function _new takes nothing returns integer
-    return _fresh( _all_objects, _recycler )
-    //local integer this = Deque#_fresh( _all_objects, _recycler )
-    //return this
+    return _alloc()
 endfunction
 
 // @noalloc
@@ -842,7 +834,7 @@ function _tostring_debug takes integer v returns string
     elseif ty == Types#_Coroutine then
 	return "Thread: "+I2S(v)
     elseif ty == Types#_Foreign then
-	return "Foreign: "+I2S(v)
+	return "Foreign: "+I2S(v)+" jass: "+I2S(_Int[v])
     else
 	return "Unk: "+I2S(v)
     endif
@@ -990,12 +982,20 @@ function _2boolean takes integer v, integer interpreter returns boolean
 endfunction
 
 
-function _init takes nothing returns nothing
-    set _recycler = _alloc() // this is the deque alloc
-    set _all_objects = _alloc() // this is the deque alloc
-    //set _recycler = Deque#_alloc()
-    //set _all_objects = Deque#_alloc()
-    //set _Nil = _new()
-    //set _Type[_Nil] = Types#_Nil
+function _mark_used takes integer value returns nothing
+    set _mark[value] = GC#_inqueue_flag
 endfunction
 
+function _sweep takes nothing returns nothing
+    local integer i = 1
+    loop
+    exitwhen i >= _I
+	if _V[i] == -1 and _mark[i] != GC#_inqueue_flag then
+	    call _free(i)
+	endif
+	set i = i +1
+    endloop
+endfunction
+
+function _init takes nothing returns nothing
+endfunction

@@ -7,7 +7,6 @@ globals
     constant integer _StatusDead = 2
 
     integer array _interpreter
-    integer array _context
     integer array _base_frame
     integer array _stop_frame
     integer array _status
@@ -32,7 +31,6 @@ function _create takes integer tbl, integer ctx, integer interpreter returns not
     set Context#_type[new_ctx] = Context#_Coroutine
 
     set _interpreter[co_value]	= interpreter
-    set _context[co_value]	= new_ctx
     set _base_frame[co_value]	= base_frame
     set _stop_frame[co_value]	= base_frame
     set _status[co_value]	= _StatusSuspended

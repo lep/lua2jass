@@ -2,7 +2,6 @@
 // REQUIRES StringTable Print
 
 globals
-    #include "alloc-globals.j"
 
     constant integer _Function = 1
     constant integer _Coroutine = 2
@@ -29,21 +28,32 @@ globals
 
 
     integer _hasrec_last_value = 0
+
+    // dump GC stuff
+    boolean array _mark
+
+    #include "alloc-globals.j"
 endglobals
 
 #include "alloc.j"
 
-function _init takes integer ctx returns nothing
+function _new takes nothing returns integer
+    return _alloc()
+endfunction
+
+function _initialize takes integer ctx returns nothing
     set _locals[ctx] = Table#_alloc() // StringTable
-    //set _params[ctx] = Table#_alloc()
     set _tmps[ctx] = Table#_alloc()
     set _ret_behaviour[ctx] = 0
 endfunction
 
 
+// TODO: IDEA: instead of of setting a parent context
+// just "copy" aka. set _locals?
+// why? because it could free more (not all) _tmps via GC.
 function _clone takes integer ctx returns integer
-    local integer new_ctx = _alloc()
-    call _init(new_ctx)
+    local integer new_ctx = _new()
+    call _initialize(new_ctx)
     set _ip[new_ctx] = _ip[ctx]
     set _chunk_name[new_ctx] = _chunk_name[ctx]
     set _parent[new_ctx] = _parent[ctx]
@@ -81,14 +91,20 @@ function _get takes integer ctx, string name returns integer
     endif
 endfunction
 
+function _mark_used takes integer ctx returns nothing
+    set _mark[ctx] = GC#_inqueue_flag
+endfunction
 
-function _dealloc takes integer ctx returns nothing
-    call StringTable#_dealloc( _locals[ctx] )
-    call Table#_free( _tmps[ctx] ) // TODO: does this work with `...` e.g.?
-    set _locals[ctx] = 0
-    set _ip[ctx] = 0
-    set _tmps[ctx] = 0
-    set _parent[ctx] = 0
-    set _ret_behaviour[ctx] = 0
-    set _chunk_name[ctx] = null
+function _sweep takes nothing returns nothing
+    local integer i = 1
+    loop
+    exitwhen i >= _I
+	if _V[i] == -1 and _mark[i] != GC#_inqueue_flag then
+	    call _free(i)
+	endif
+	set i = i +1
+    endloop
+endfunction
+
+function _init takes nothing returns nothing
 endfunction

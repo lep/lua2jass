@@ -1,8 +1,8 @@
 RUNTIME := runtime/Ins.j runtime/Interpreter.j runtime/Table.j runtime/Value.j  
 RUNTIME += runtime/Context.j runtime/StringTable.j runtime/List.j runtime/Print.j
 RUNTIME += runtime/Types.j runtime/Builtins.j runtime/Wrap.j runtime/Call.j
+RUNTIME += runtime/GC.j runtime/Deque.j
 RUNTIME += runtime/Builtin/Coroutine.j
-
 RUNTIME += runtime/Builtin/Trigger.j
 RUNTIME += runtime/Builtin/Timer.j
 RUNTIME += runtime/Builtin/Boolexpr.j
@@ -24,11 +24,14 @@ auto/Auto.j: test.lua
 auto/Jass.j auto/Natives.j auto/Dispatch.j: common.j wrap-natives.hs
 	runhaskell wrap-natives.hs common.j
 
+out/Context.j: runtime/Context.j runtime/deque-alloc.j
+out/Value.j: runtime/Value.j runtime/deque-alloc.j
+
 out/%.j: runtime/%.j
-	perl process.pl $^ $@ lua_ 2>/dev/null
+	perl process.pl $< $@ lua_ 2>/dev/null
 
 out/%.j: auto/%.j
-	perl process.pl $^ $@ lua_ 2>/dev/null
+	perl process.pl $< $@ lua_ 2>/dev/null
 
 check: war3map.j
 	pjass $$commonj Blizzard.j war3map.j

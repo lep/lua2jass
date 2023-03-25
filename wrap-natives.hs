@@ -214,7 +214,10 @@ compile (Programm ts) = do
             , ("print", "Builtins#_print")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
+            , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")
             , ("TimerStart", "Builtin/Timer#_TimerStart")
+            , ("GetExpiredTimer", "Builtin/Timer#_GetExpiredTimer")
+
             , ("CreateTrigger", "Builtin/Trigger#_CreateTrigger")
             , ("TriggerAddAction", "Builtin/Trigger#_TriggerAddAction")
             
@@ -233,7 +236,8 @@ compile (Programm ts) = do
             --  - DestroyBoolexpr, TriggerAddCondition, TriggerRegisterEnterRegion
             --  - TriggerRegisterLeaveRegion, TriggerRegisterPlayerUnitEvent,
             --  - TriggerRegisterFilterUnitEvent, TriggerRegisterUnitInRange,
-            --  - TriggerEvaluate, SaveBooleanExprHandle
+            --  - TriggerEvaluate, SaveBooleanExprHandle, GetTriggeringTrigger,
+            -- - LoadTriggerHandle, LoadTimerHandle, DestroyTrigger
             ]
 
         converters = map (mkConvert $ parent2children ts) $ Set.toList allTypes
