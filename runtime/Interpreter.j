@@ -1,5 +1,5 @@
 // scope Interpreter
-// REQUIRES Value Ins Context Table Print Dispatch Deque
+// REQUIRES Value Ins Context Table Print Dispatch
 
 globals
     #include "alloc-globals.j"

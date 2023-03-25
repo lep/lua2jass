@@ -212,6 +212,7 @@ compile (Programm ts) = do
 
             , ("setmetatable", "Builtins#_setmetatable")
             , ("print", "Builtins#_print")
+            , ("FourCC", "Builtins#_FourCC")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")
