@@ -24,8 +24,11 @@ auto/Auto.j: test.lua
 auto/Jass.j auto/Natives.j auto/Dispatch.j: common.j wrap-natives.hs
 	runhaskell wrap-natives.hs common.j
 
-out/Context.j: runtime/Context.j runtime/deque-alloc.j
-out/Value.j: runtime/Value.j runtime/deque-alloc.j
+out/Context.j: runtime/alloc.j runtime/alloc-globals.j
+out/Interpreter.j: runtime/alloc.j runtime/alloc-globals.j
+out/List.j: runtime/alloc.j runtime/alloc-globals.j
+out/Table.j: runtime/alloc.j runtime/alloc-globals.j
+out/Value.j: runtime/alloc.j runtime/alloc-globals.j
 
 out/%.j: runtime/%.j
 	perl process.pl $< $@ lua_ 2>/dev/null

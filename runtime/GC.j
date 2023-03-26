@@ -77,6 +77,23 @@ function _work_iqueue takes nothing returns nothing
     endloop
 endfunction
 
+function _handle_boolexpr takes integer value returns nothing
+    local integer ty = Value#_Int3[value]
+    call _push_value( value )
+
+    if ty == Builtin/Boolexpr#_NORMAL then
+        call _push_value( Builtin/Boolexpr#_Fun1[value] )
+    elseif ty == Builtin/Boolexpr#_AND then
+        call _handle_boolexpr( Builtin/Boolexpr#_Fun1[value] )
+        call _handle_boolexpr( Builtin/Boolexpr#_Fun2[value] )
+    elseif ty == Builtin/Boolexpr#_OR then
+        call _handle_boolexpr( Builtin/Boolexpr#_Fun1[value] )
+        call _handle_boolexpr( Builtin/Boolexpr#_Fun2[value] )
+    elseif ty == Builtin/Boolexpr#_NOT then
+        call _handle_boolexpr( Builtin/Boolexpr#_Fun1[value] )
+    endif
+endfunction
+
 function _work_vqueue takes nothing returns nothing
     local integer i = VALUE_MAX_STEPS
     local integer ls
@@ -88,7 +105,6 @@ function _work_vqueue takes nothing returns nothing
     //call Print#_print("_work_vqueue")
 
     loop
-    exitwhen i <= 0
 	set ls = Deque#_shift( _value_queue )
 	exitwhen ls == 0
 	set value = _value[ls]
@@ -135,11 +151,11 @@ function _work_vqueue takes nothing returns nothing
 		call _push_value( Value#_Int2[ value ] )
 	    elseif Value#_Int[value] == Jass#_timer then
 		call _push_value( Value#_Int3[ value ] )
+            elseif Value#_Int[value] == Jass#_boolexpr then
+                call _handle_boolexpr( value )
 	    endif
 	    
 	endif
-
-	set i = i -1
     endloop
 endfunction
 
@@ -155,7 +171,6 @@ function _work_cqueue takes nothing returns nothing
     local integer val3
     //call Print#_print("_work_cqueue")
     loop
-    exitwhen i <= 0
 	set ls = Deque#_shift( _context_queue )
 	exitwhen ls == 0
 	set ctx = _context[ls]
@@ -190,8 +205,6 @@ function _work_cqueue takes nothing returns nothing
 	    exitwhen ctx == 0
 	    call _push_context( ctx )
 	endloop
-
-	set i = i -1
     endloop
 endfunction
 
