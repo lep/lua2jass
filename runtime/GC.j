@@ -102,6 +102,7 @@ function _work_vqueue takes nothing returns nothing
     local integer val2
 
     local integer ls2
+    local integer ls3
     //call Print#_print("_work_vqueue")
 
     loop
@@ -122,8 +123,20 @@ function _work_vqueue takes nothing returns nothing
 		set ls2 = List#_next[ls2]
 	    endloop
 
-	    // TODO: _Int2
-	    // TODO: _Int3
+            set ls2 = Table#_head[ Value#_Int2[value] ]
+            loop
+            exitwhen ls2 == 0
+                set ls3 = Table#_val[ls2]
+                loop
+                exitwhen ls3 == 0
+                    call _push_value( Value#_key[ls3] )
+                    call _push_value( Value#_val[ls3] )
+                    set ls3 = List#_next[ls3]
+                endloop
+                set ls2 = List#_next[ls2]
+            endloop
+
+            call _push_value( Value#_Int3[value] )
 
 	elseif ty == Types#_Lambda then
 	    call _push_context( Value#_Int[value] )
