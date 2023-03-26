@@ -1,5 +1,5 @@
 // scope Builtins
-// REQUIRES Print Value Table Context Natives Builtin/Boolexpr
+// REQUIRES Print Value Table Context Natives Builtin/Boolexpr GC
 
 
 globals
@@ -50,6 +50,10 @@ function _FourCC takes integer tbl, integer ctx, integer interpreter returns not
     call Table#_set( Value#_Int[return_table], 1, Value#_litint(_S2A(Value#_2string(str, interpreter))) )
 endfunction
 
+function _collectgarbage takes integer tbl, integer ctx, integer interpreter returns nothing
+    call GC#_full_mark_and_sweep()
+endfunction
+
 function _print takes integer tbl, integer ctx, integer interpreter returns nothing
     local string r = ""
     local integer k = 1
@@ -88,24 +92,54 @@ function _print takes integer tbl, integer ctx, integer interpreter returns noth
     call Print#_print("|c00aaaaff"+r+"|r")
 endfunction
 
+// https://www.lua.org/pil/13.3.html
 // function setmetatable(table, metatable)
 function _setmetatable takes integer params_tbl, integer ctx, integer interpreter returns nothing
     local integer table = Table#_get( params_tbl, 1 )
     local integer metatable = Table#_get( params_tbl, 2 )
     local integer return_table = Table#_get( params_tbl, 0 )
-    //call Print#_print("_setmetatable")
-    //call Print#_print("  - setting metable of table "+I2S(Value#_Int[table])+" to "+I2S(Value#_Int[metatable]))
+    local integer current_metatable = Value#_Int3[table]
 
-    // TODO: check if _Int3 is allready set
+    if Value#_Type[table] != Types#_Table then
+	call Print#_error("Bad argument #1 to 'setmetatable' (table expected)")
+	return
+    endif
+
+    if Value#_Type[metatable] != Types#_Table and Value#_Type[metatable] != Types#_Nil  then
+	call Print#_error("Bad argument #2 to 'setmetatable' (table or nil expected)")
+	return
+    endif
+
+    if Value#_gettable(metatable, Value#_litstring("__metatable")) != Value#_Nil then
+	call Print#_error("Cannot change protected metatable")
+	return
+    endif
+
     if metatable == Value#_Nil then
-	//call Print#_print("  - metatable is nil")
 	set Value#_Int3[table] = 0
     else
-	//call Print#_print("  - metatable is not nil")
 	set Value#_Int3[table] = metatable
     endif
 
     call Table#_set( Value#_Int[return_table], 1, table )
+endfunction
+
+function _getmetatable takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer return_table = Table#_get( params_tbl, 0 )
+    local integer table = Table#_get( params_tbl, 1 )
+    local integer metatable
+    if Value#_Type[table] != Types#_Table then
+	call Table#_set( Value#_Int[return_table], 1, Value#_Nil )
+    elseif Value#_Int3[table] == 0 then
+	call Table#_set( Value#_Int[return_table], 1, Value#_Nil )
+    else
+	set metatable = Value#_gettable( Value#_Int3[table], Value#_litstring("__metatable"))
+	if metatable != Value#_Nil then
+	    call Table#_set( Value#_Int[return_table], 1, metatable )
+	else
+	    call Table#_set( Value#_Int[return_table], 1, Value#_Int3[table] )
+	endif
+    endif
 endfunction
 
 

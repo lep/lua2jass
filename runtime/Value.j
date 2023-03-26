@@ -455,31 +455,27 @@ function _settable takes integer t, integer k, integer v returns nothing
     //call Print#_print("_settable("+I2S(t)+","+I2S(k)+","+I2S(v)+")")
 
     if _Type[t] != Types#_Table then
-	call Print#_error("Expected table but got "+I2S(_Type[t]))
+	call Print#_warn("Expected table but got "+I2S(_Type[t]))
+        return
     endif
 
     if _Type[k] == Types#_Nil then
-	call Print#_error("table index is nil")
+	call Print#_warn("table index is nil")
+        return
     endif
 
     if ty == Jass#_integer then
-//	call Print#_print("  - int key: "+I2S(_Int[k]))
-//	call Print#_print("  - _Int table id: "+I2S(_Int[t]))
 	call Table#_set( _Int[t], _Int[k], v )
     elseif ty == Jass#_real and _Real[k] == R2I(_Real[k]) then
-	//call Print#_print("  - real type but int key")
 	call Table#_set( _Int[t], R2I(_Real[k]), v )
     else
-	//call Print#_print("  - key of type "+I2S(ty))
 	set tbl = _Int2[t]
 	set ls = Table#_get( tbl, _hash(k) )
 	set prev = ls
 	loop
 	exitwhen ls == 0
-	    //call Print#_print("  - "+I2S(ls))
 	    if _rawequal_noalloc(_key[ls], k) then
 		set _val[ls] = v
-		//return _val[ls]
 		return
 	    endif
 	    set prev = ls
@@ -498,15 +494,11 @@ function _gettable takes integer v, integer k returns integer
     local integer ty = _Type[k]
     local integer tbl
     local integer ls
-    //call Print#_print("_gettable")
     if ty == Jass#_integer then
-	//call Print#_print("  - int key")
 	return Table#_get( _Int[v], _Int[k] )
     elseif ty == Jass#_real and _Real[k] == R2I(_Real[k]) then
-	//call Print#_print("  - real type but int key")
 	return Table#_get( _Int[v], R2I(_Real[k]) )
     else
-	//call Print#_print("  - key of type "+I2S(ty))
 	set tbl = _Int2[v]
 	set ls = Table#_get( tbl, _hash(k) )
 	loop
@@ -520,6 +512,7 @@ function _gettable takes integer v, integer k returns integer
     endif
 endfunction
 
+// @alloc
 function _len takes integer v returns integer
     local integer ty = _Type[v]
     local integer k = 1

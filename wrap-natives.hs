@@ -211,8 +211,10 @@ compile (Programm ts) = do
             , ("co_resume", "Builtin/Coroutine#_resume")
 
             , ("setmetatable", "Builtins#_setmetatable")
+            , ("getmetatable", "Builtins#_getmetatable")
             , ("print", "Builtins#_print")
             , ("FourCC", "Builtins#_FourCC")
+            , ("collectgarbage", "Builtins#_collectgarbage")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")
