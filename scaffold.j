@@ -1,5 +1,5 @@
 globals
-    constant boolean NEW_INTP_ON_CHAT = true
+    constant boolean NEW_INTP_ON_CHAT = false
 endglobals
 
 function print_hello takes nothing returns nothing

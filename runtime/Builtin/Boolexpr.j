@@ -11,6 +11,14 @@ globals
     integer _code_i
 
     boolexpr _filter
+
+    constant integer _NORMAL = 1
+    constant integer _AND = 2
+    constant integer _OR = 3
+    constant integer _NOT = 4
+
+    integer array _Fun1
+    integer array _Fun2
 endglobals
 
 function _cb takes nothing returns nothing
@@ -18,10 +26,8 @@ function _cb takes nothing returns nothing
 endfunction
 
 function _eval takes integer v, integer r, integer i returns boolean
-    local integer t = Table#_get( Value#_Int[v], 'type' )
-    local integer sub_type = Table#_get( Value#_Int[v], 'subt' )
-    local integer f1
-    local integer f2
+    local integer t = Value#_Int[v]
+    local integer sub_type = Value#_Int3[v]
 
     if Value#_Type[v] == Types#_Nil then
 	return true
@@ -31,24 +37,15 @@ function _eval takes integer v, integer r, integer i returns boolean
 	return false
     endif
 
-    if sub_type == 0 then
-	set f1 = Table#_get( Value#_Int[v], 'func' )
-	call Call#_call0( f1, r, i )
+    if sub_type == _NORMAL then
+	call Call#_call0( _Fun1[v], r, i )
 	return Value#_truthy( Table#_get( Value#_Int[r], 1 ) )
-    elseif sub_type == 'Op/A' then
-	set f1 = Table#_get( Value#_Int[v], 'arg1' )
-	set f2 = Table#_get( Value#_Int[v], 'arg2' )
-
-	return _eval(f1, Value#_table(), i) and _eval(f2, Value#_table(), i)
-
-    elseif sub_type == 'Op/O' then
-	set f1 = Table#_get( Value#_Int[v], 'arg1' )
-	set f2 = Table#_get( Value#_Int[v], 'arg2' )
-
-	return _eval(f1, Value#_table(), i) or _eval(f2, Value#_table(), i)
-    elseif sub_type == 'Op/N' then
-	set f1 = Table#_get( Value#_Int[v], 'arg1' )
-	return not _eval(f1, Value#_table(), i)
+    elseif sub_type == _AND then
+	return _eval(_Fun1[v], Value#_table(), i) and _eval(_Fun2[v], Value#_table(), i)
+    elseif sub_type == _OR then
+	return _eval(_Fun1[v], Value#_table(), i) or _eval(_Fun2[v], Value#_table(), i)
+    elseif sub_type == _NOT then
+	return not _eval(_Fun1[v], Value#_table(), i)
     endif
 
     return false
@@ -61,7 +58,7 @@ endfunction
 function _Filter takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer r = Table#_get(tbl, 0)
     local integer arg1 = Table#_get(tbl, 1)
-    local integer obj = Value#_table()
+    local integer obj = Value#_foreign( Jass#_boolexpr )
 
     // this doesn't solve our problems as we cannot (afair) get the conditions
     // from the trigger anyways. so we have to implement all the trigger-functions
@@ -69,9 +66,9 @@ function _Filter takes integer tbl, integer ctx, integer interpreter returns not
     //local boolexpr f = And(function _filter, null) // TODO: check if this has the correct properties
     //call Table#_set( _boolexpr2value, GetHandleId(f), obj )
 
-    call Table#_set( Value#_Int[obj], 'type', Jass#_boolexpr )
-    call Table#_set( Value#_Int[obj], 'intp', interpreter )
-    call Table#_set( Value#_Int[obj], 'func', arg1 )
+    set Value#_Int2[obj] = interpreter
+    set Value#_Int3[obj] = _NORMAL
+    set _Fun1[obj] = arg1
 
     call Table#_set( Value#_Int[r], 1, obj )
     
@@ -85,13 +82,12 @@ function _And takes integer tbl, integer ctx, integer interpreter returns nothin
     local integer r = Table#_get(tbl, 0)
     local integer arg1 = Table#_get(tbl, 1)
     local integer arg2 = Table#_get(tbl, 2)
-    local integer obj = Value#_table()
+    local integer obj = Value#_foreign(Jass#_boolexpr)
 
-    call Table#_set( Value#_Int[obj], 'type', Jass#_boolexpr )
-    call Table#_set( Value#_Int[obj], 'intp', interpreter )
-    call Table#_set( Value#_Int[obj], 'arg1', arg1 )
-    call Table#_set( Value#_Int[obj], 'arg2', arg2 )
-    call Table#_set( Value#_Int[obj], 'subt', 'Op/A' )
+    set Value#_Int2[obj] = interpreter
+    set Value#_Int3[obj] = _AND
+    set _Fun1[obj] = arg1
+    set _Fun2[obj] = arg2
 
     call Table#_set( Value#_Int[r], 1, obj )
     
@@ -101,13 +97,12 @@ function _Or takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer r = Table#_get(tbl, 0)
     local integer arg1 = Table#_get(tbl, 1)
     local integer arg2 = Table#_get(tbl, 2)
-    local integer obj = Value#_table()
+    local integer obj = Value#_foreign(Jass#_boolexpr)
 
-    call Table#_set( Value#_Int[obj], 'type', Jass#_boolexpr )
-    call Table#_set( Value#_Int[obj], 'intp', interpreter )
-    call Table#_set( Value#_Int[obj], 'arg1', arg1 )
-    call Table#_set( Value#_Int[obj], 'arg2', arg2 )
-    call Table#_set( Value#_Int[obj], 'subt', 'Op/O' )
+    set Value#_Int2[obj] = interpreter
+    set Value#_Int3[obj] = _OR
+    set _Fun1[obj] = arg1
+    set _Fun2[obj] = arg2
 
     call Table#_set( Value#_Int[r], 1, obj )
     
@@ -116,12 +111,12 @@ endfunction
 function _Not takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer r = Table#_get(tbl, 0)
     local integer arg1 = Table#_get(tbl, 1)
-    local integer obj = Value#_table()
+    local integer obj = Value#_foreign(Jass#_boolexpr)
 
-    call Table#_set( Value#_Int[obj], 'type', Jass#_boolexpr )
-    call Table#_set( Value#_Int[obj], 'intp', interpreter )
-    call Table#_set( Value#_Int[obj], 'arg1', arg1 )
-    call Table#_set( Value#_Int[obj], 'subt', 'Op/N' )
+    set Value#_Int2[obj] = interpreter
+    set Value#_Int3[obj] = _NOT
+    set _Fun1[obj] = arg1
+    set _Fun2[obj] = 0
 
     call Table#_set( Value#_Int[r], 1, obj )
     
