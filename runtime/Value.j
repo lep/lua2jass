@@ -217,88 +217,27 @@ function _idiv takes integer a, integer b returns integer
     return new
 endfunction
 
-// @alloc
-function _gt takes integer a, integer b returns integer
-    local integer new = _new()
+function _lt_numeric_noalloc takes integer a, integer b returns boolean
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
-    set _Type[new] = Jass#_boolean
 
     if ty_a == Jass#_integer and ty_b == Jass#_integer then
-	set _Bool[new] = _Int[a] > _Int[b]
+	return _Int[a] < _Int[b]
     elseif ty_a == Jass#_integer and ty_b == Jass#_real then
-	set _Bool[new] = _Int[a] > _Real[b]
+	return _Int[a] < _Real[b]
     elseif ty_b == Jass#_integer and ty_a == Jass#_real then
-	set _Bool[new] = _Real[a] > _Int[b]
+	return _Real[a] < _Int[b]
     elseif ty_a == Jass#_real and ty_b == Jass#_real then
-	set _Bool[new] = _Real[a] > _Real[b]
-    else
-	call Print#_error("_gt: Error. Should not happen")
-    endif
-    return new
-endfunction
-
-// @alloc
-function _gte takes integer a, integer b returns integer
-    local integer new = _new()
-    local integer ty_a = _Type[a]
-    local integer ty_b = _Type[b]
-    set _Type[new] = Jass#_boolean
-
-    if ty_a == Jass#_integer and ty_b == Jass#_integer then
-	set _Bool[new] = _Int[a] >= _Int[b]
-    elseif ty_a == Jass#_integer and ty_b == Jass#_real then
-	set _Bool[new] = _Int[a] >= _Real[b]
-    elseif ty_b == Jass#_integer and ty_a == Jass#_real then
-	set _Bool[new] = _Real[a] >= _Int[b]
-    elseif ty_a == Jass#_real and ty_b == Jass#_real then
-	set _Bool[new] = _Real[a] >= _Real[b]
-    else
-	call Print#_error("_gte: Error. Should not happen")
-    endif
-    return new
-endfunction
-
-// @alloc
-function _lt takes integer a, integer b returns integer
-    local integer new = _new()
-    local integer ty_a = _Type[a]
-    local integer ty_b = _Type[b]
-    set _Type[new] = Jass#_boolean
-
-    if ty_a == Jass#_integer and ty_b == Jass#_integer then
-	set _Bool[new] = _Int[a] < _Int[b]
-    elseif ty_a == Jass#_integer and ty_b == Jass#_real then
-	set _Bool[new] = _Int[a] < _Real[b]
-    elseif ty_b == Jass#_integer and ty_a == Jass#_real then
-	set _Bool[new] = _Real[a] < _Int[b]
-    elseif ty_a == Jass#_real and ty_b == Jass#_real then
-	set _Bool[new] = _Real[a] < _Real[b]
+	return _Real[a] < _Real[b]
     else
 	call Print#_error("_lt: Error. Should not happen")
+	return false
     endif
-    return new
 endfunction
 
-// @alloc
-function _lte takes integer a, integer b returns integer
-    local integer new = _new()
-    local integer ty_a = _Type[a]
-    local integer ty_b = _Type[b]
-    set _Type[new] = Jass#_boolean
-
-    if ty_a == Jass#_integer and ty_b == Jass#_integer then
-	set _Bool[new] = _Int[a] <= _Int[b]
-    elseif ty_a == Jass#_integer and ty_b == Jass#_real then
-	set _Bool[new] = _Int[a] <= _Real[b]
-    elseif ty_b == Jass#_integer and ty_a == Jass#_real then
-	set _Bool[new] = _Real[a] <= _Int[b]
-    elseif ty_a == Jass#_real and ty_b == Jass#_real then
-	set _Bool[new] = _Real[a] <= _Real[b]
-    else
-	call Print#_error("_lte: Error. Should not happen")
-    endif
-    return new
+// a <= b ~~ not (b > a)
+function _lte_numeric_noalloc takes integer a, integer b returns boolean
+    return not _lte_numeric_noalloc(b, a)
 endfunction
 
 
@@ -414,7 +353,9 @@ function _rawequal_noalloc takes integer a, integer b returns boolean
     elseif type_a == Types#_Lambda and type_b == Types#_Lambda then
 	return _Int[a] == _Int[b]
     elseif type_a == Types#_BuiltInFunction and type_b == Types#_BuiltInFunction then
-	return _String[a] == _String[b]
+	return _Int[a] == _Int[b]
+    elseif type_a == Types#_Foreign and type_b == Types#_Foreign then
+	return _Int[a] == _Int[b] // idk. don't wanna compare jass types
     else
 	return false
     endif
@@ -432,8 +373,11 @@ function _hash takes integer v returns integer
 	return R2I( _Real[v] * 16180.33 )
     elseif ty == Types#_Lambda then
 	return _Int[v]
-    elseif ty == Types#_BuiltInFunction then // TODO: we want to use IDs anyway i think
+    elseif ty == Types#_BuiltInFunction then
+	return _Int[v]
 	return StringHash(_String[v])
+    elseif ty == Types#_Foreign then
+	return _Int[v]
     elseif ty == Jass#_boolean then
 	if _Bool[v] then
 	    return 0x11111111

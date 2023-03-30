@@ -428,46 +428,138 @@ function _Exp takes integer ctx, integer ip, integer interpreter returns nothing
     endif
 endfunction
 
-function _EQ takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_eq(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+function _eq_value takes integer ctx, integer ip, integer interpreter returns boolean
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer ret = Value#_table()
+
+    local integer aType = Value#_Type[a]
+    local integer bType = Value#_Type[b]
+
+    local boolean eq = Value#_rawequal_noalloc(a, b)
+
+    local integer aMetamethod = _getMetamethod(a, "__eq")
+    local integer bMetamethod = _getMetamethod(b, "__eq")
+
+    if eq then
+	return eq
+    // TODO: _Foreign?
+    elseif aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	return Value#_truthy( Table#_get( Value#_Int[ret], 1 ) )
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	return Value#_truthy( Table#_get( Value#_Int[ret], 1 ) )
+    else
+	return eq
+    endif
 endfunction
 
-function _NEQ takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_neq(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+function _EQ takes integer ctx, integer ip, integer interpreter returns nothing
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], Value#_litbool(_eq_value(ctx, ip, interpreter) ))
 endfunction
 
-function _GTE takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_gte(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+function _NEQ takes integer ctx, integer ip, integer interpreter returns nothing
+    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], Value#_litbool(not _eq_value(ctx, ip, interpreter) ))
 endfunction
 
-function _GT takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_gt(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+
+function _lt_string takes string a, string b returns boolean
+    local integer i = 0
+    local integer l1 = StringLength(a)
+    local integer l2 = StringLength(b)
+
+    local string c
+    local string d
+
+    loop
+    exitwhen i > l1 or i > l2
+	set c = SubString(a, i, i+1)
+	set d = SubString(b, i, i+1)
+
+	if c != d then
+	    return Builtins#_Char2Ascii(c) < Builtins#_Char2Ascii(d)
+	endif
+	
+	set i = i +1
+    endloop
+    return false
 endfunction
 
-function _LTE takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_lte(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+function _lt_value takes integer v1, integer v2, integer interpreter returns boolean
+    local integer type1 = Value#_Type[v1]
+    local integer type2 = Value#_Type[v2]
+
+    local integer aMetamethod = _getMetamethod(v1, "__lt")
+    local integer bMetamethod = _getMetamethod(v2, "__lt")
+
+    local integer ret = Value#_table() // lol GC
+
+    if type1 == Jass#_string and type2 == Jass#_string then
+	return _lt_string(Value#_String[v1], Value#_String[v2] )
+    elseif (type1 == Jass#_integer or type1 == Jass#_real) and (type2 == Jass#_integer or type2 == Jass#_real) then
+	return Value#_lt_numeric_noalloc(v1, v2)
+    elseif aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, v1, v2, ret, interpreter )
+	return ( Value#_truthy( Table#_get( Value#_Int[ret], 1 ) ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, v1, v2, ret, interpreter )
+	return ( Value#_truthy( Table#_get( Value#_Int[ret], 1 ) ))
+    else
+	call Print#_error("attempt to compare two non-comparable values")
+	return false
+    endif
+
 endfunction
 
-function _LT takes integer ctx, integer ip returns nothing
+function _lte_value takes integer v1, integer v2, integer interpreter returns boolean
+    local integer type1 = Value#_Type[v1]
+    local integer type2 = Value#_Type[v2]
+
+    local integer aMetamethod = _getMetamethod(v1, "__le")
+    local integer bMetamethod = _getMetamethod(v2, "__le")
+
+    local integer ret = Value#_table() // lol GC
+    
+    if type1 == Jass#_string and type2 == Jass#_string then
+	return not _lt_string(Value#_String[v2], Value#_String[v1])
+    elseif (type1 == Jass#_integer or type1 == Jass#_real) and (type2 == Jass#_integer or type2 == Jass#_real) then
+	return Value#_lte_numeric_noalloc(v1, v2)
+    elseif aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, v1, v2, ret, interpreter )
+	return Value#_truthy( Table#_get( Value#_Int[ret], 1 ) )
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, v1, v2, ret, interpreter )
+	return Value#_truthy( Table#_get( Value#_Int[ret], 1 ) )
+    else
+	return not _lt_value( v2, v1, interpreter )
+    endif
+endfunction
+
+// a >= b ~~ b <= a
+function _GTE takes integer ctx, integer ip, integer interpreter returns nothing
     local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer v3 = Value#_lt(v1, v2)
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v3)
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litbool(_lte_value(v2, v1, interpreter) ))
+endfunction
+
+// a > b ~~ b < a
+function _GT takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litbool(_lt_value(v2, v1, interpreter) ))
+endfunction
+
+function _LTE takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litbool(_lte_value(v1, v2, interpreter) ))
+endfunction
+
+function _LT takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer v2 = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litbool(_lt_value(v1, v2, interpreter) ))
 endfunction
 
 function _Table takes integer ctx, integer ip returns nothing
@@ -843,17 +935,17 @@ function _step takes integer interpreter returns boolean
     elseif ins == Ins#_Exp then
 	call _Exp(ctx, ip, interpreter)
     elseif ins == Ins#_EQ then
-	call _EQ(ctx, ip)
+	call _EQ(ctx, ip, interpreter)
     elseif ins == Ins#_NEQ then
-	call _NEQ(ctx, ip)
+	call _NEQ(ctx, ip, interpreter)
     elseif ins == Ins#_LTE then
-	call _LTE(ctx, ip)
+	call _LTE(ctx, ip, interpreter)
     elseif ins == Ins#_LT then
-	call _LT(ctx, ip)
+	call _LT(ctx, ip, interpreter)
     elseif ins == Ins#_GTE then
-	call _GTE(ctx, ip)
+	call _GTE(ctx, ip, interpreter)
     elseif ins == Ins#_GT then
-	call _GT(ctx, ip)
+	call _GT(ctx, ip, interpreter)
     elseif ins == Ins#_Table then
 	call _Table(ctx, ip)
     elseif ins == Ins#_Jump then
