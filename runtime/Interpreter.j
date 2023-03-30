@@ -38,7 +38,6 @@ function _numbercontext takes integer v returns integer
 	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
 	if Value#_error then
 	    return Value#_litnil()
-	    call Print#_error("Error: cannot coerce string to number")
 	endif
 	return v
     else
@@ -57,7 +56,6 @@ function _integercontext takes integer v returns integer
 	set ty = Jass#_real
 	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
 	if Value#_error then
-	    call Print#_error("Error: cannot coerce string to number")
 	    return Value#_litnil()
 	endif
     endif
@@ -69,8 +67,6 @@ function _integercontext takes integer v returns integer
 	endif
     endif
 
-    // TODO: metatables
-    call Print#_error("Error: cannot coerce value to integer")
     return Value#_litnil()
 endfunction
 
@@ -80,45 +76,154 @@ function _Not takes integer ctx, integer ip returns nothing
     call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], v2)
 endfunction
 
-function _Complement takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer v2 = Value#_complement( _integercontext(v1) )
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], v2)
+function _Complement takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _integercontext(a)
+
+    local integer aMetamethod = _getMetamethod(a, "__bnot")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call1( aMetamethod, a, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil then
+	    call Print#_error("number has no integer representation")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_complement(a) )
+	endif
+    endif
 endfunction
 
-function _ShiftL takes integer ctx, integer ip returns nothing
-    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
-    local integer r = Value#_shiftl( _integercontext(a), _integercontext(b) )
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+function _ShiftL takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _integercontext(a)
+    local integer bAsNumber = _integercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__shl")
+    local integer bMetamethod = _getMetamethod(b, "__shl")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("number has no integer representation")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_shiftl(a, b) )
+	endif
+    endif
 endfunction
 
-function _ShiftR takes integer ctx, integer ip returns nothing
-    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
-    local integer r = Value#_shiftr( _integercontext(a), _integercontext(b) )
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+function _ShiftR takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _integercontext(a)
+    local integer bAsNumber = _integercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__shr")
+    local integer bMetamethod = _getMetamethod(b, "__shr")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("number has no integer representation")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_shiftr(a, b) )
+	endif
+    endif
 endfunction
 
-function _BAnd takes integer ctx, integer ip returns nothing
-    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
-    local integer r = Value#_band( _integercontext(a), _integercontext(b) )
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+function _BAnd takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _integercontext(a)
+    local integer bAsNumber = _integercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__band")
+    local integer bMetamethod = _getMetamethod(b, "__band")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("number has no integer representation")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_band(a, b) )
+	endif
+    endif
 endfunction
 
-function _BOr takes integer ctx, integer ip returns nothing
-    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
-    local integer r = Value#_bor( _integercontext(a), _integercontext(b) )
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+function _BOr takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _integercontext(a)
+    local integer bAsNumber = _integercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__bor")
+    local integer bMetamethod = _getMetamethod(b, "__bor")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("number has no integer representation")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_bor(a, b) )
+	endif
+    endif
 endfunction
 
-function _BXor takes integer ctx, integer ip returns nothing
-    local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
-    local integer r = Value#_bxor( _integercontext(a), _integercontext(b) )
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
+function _BXor takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _integercontext(a)
+    local integer bAsNumber = _integercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__bxor")
+    local integer bMetamethod = _getMetamethod(b, "__bxor")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("number has no integer representation")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_bxor(a, b) )
+	endif
+    endif
 endfunction
 
 function _Neg takes integer ctx, integer ip, integer interpreter returns nothing
@@ -127,7 +232,7 @@ function _Neg takes integer ctx, integer ip, integer interpreter returns nothing
 
     local integer aAsNumber = _numbercontext(a)
 
-    local integer aMetamethod = _getMetamethod(a, "__sub")
+    local integer aMetamethod = _getMetamethod(a, "__unm")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call1( aMetamethod, a, ret, interpreter )
@@ -708,17 +813,17 @@ function _step takes integer interpreter returns boolean
     if ins == Ins#_Not then
 	call _Not(ctx, ip)
     elseif ins == Ins#_Complement then
-	call _Complement(ctx, ip)
+	call _Complement(ctx, ip, interpreter)
     elseif ins == Ins#_ShiftL then
-	call _ShiftL(ctx, ip)
+	call _ShiftL(ctx, ip, interpreter)
     elseif ins == Ins#_ShiftR then
-	call _ShiftR(ctx, ip)
+	call _ShiftR(ctx, ip, interpreter)
     elseif ins == Ins#_BAnd then
-	call _BAnd(ctx, ip)
+	call _BAnd(ctx, ip, interpreter)
     elseif ins == Ins#_BOr then
-	call _BOr(ctx, ip)
+	call _BOr(ctx, ip, interpreter)
     elseif ins == Ins#_BXor then
-	call _BXor(ctx, ip)
+	call _BXor(ctx, ip, interpreter)
     elseif ins == Ins#_Neg then
 	call _Neg(ctx, ip, interpreter)
     elseif ins == Ins#_Add then
