@@ -20,3 +20,12 @@ function _call1  takes integer fn, integer p1, integer ret, integer interpreter 
     call Wrap#_call_function( fn, params, interpreter)
 endfunction
 
+function _call2  takes integer fn, integer p1, integer p2, integer ret, integer interpreter returns nothing
+    local integer params = Table#_alloc()
+
+    call Table#_set( params, 0, ret ) // return value
+    call Table#_set( params, 1, p1 )
+    call Table#_set( params, 2, p2 )
+
+    call Wrap#_call_function( fn, params, interpreter)
+endfunction

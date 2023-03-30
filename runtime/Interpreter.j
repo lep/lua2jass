@@ -17,6 +17,16 @@ globals
 endglobals
 #include "alloc.j"
 
+function _getMetamethod takes integer value, string method returns integer
+    if Value#_Type[value] != Types#_Table then
+	return Value#_litnil()
+    elseif Value#_Int3[value] == 0 then
+	return Value#_litnil()
+    else
+	return Value#_gettable( Value#_Int3[value], Value#_litstring(method) )
+    endif
+endfunction
+
 // @alloc
 function _numbercontext takes integer v returns integer
     local integer ty = Value#_Type[v]
@@ -27,6 +37,7 @@ function _numbercontext takes integer v returns integer
     elseif ty == Jass#_string then
 	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
 	if Value#_error then
+	    return Value#_litnil()
 	    call Print#_error("Error: cannot coerce string to number")
 	endif
 	return v
@@ -110,59 +121,206 @@ function _BXor takes integer ctx, integer ip returns nothing
     call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r)
 endfunction
 
-function _Neg takes integer ctx, integer ip returns nothing
-    local integer v1 = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer v2 = Value#_neg(v1)
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], v2)
+function _Neg takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _numbercontext(a)
+
+    local integer aMetamethod = _getMetamethod(a, "__sub")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call1( aMetamethod, a, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil then
+	    call Print#_error("Attempt to perform arithmethic on a string value")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_neg(aAsNumber) )
+	endif
+    endif
 endfunction
 
-function _Add takes integer ctx, integer ip returns nothing
+function _Add takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer r = Value#_add(_numbercontext(a), _numbercontext(b))
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _numbercontext(a)
+    local integer bAsNumber = _numbercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__add")
+    local integer bMetamethod = _getMetamethod(b, "__add")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("Attempt to perform arithmethic on a string value")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_add(aAsNumber, bAsNumber) )
+	endif
+    endif
 endfunction
 
-function _Sub takes integer ctx, integer ip returns nothing
+function _Sub takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer r = Value#_sub(_numbercontext(a), _numbercontext(b))
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _numbercontext(a)
+    local integer bAsNumber = _numbercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__sub")
+    local integer bMetamethod = _getMetamethod(b, "__sub")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("Attempt to perform arithmethic on a string value")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_sub(aAsNumber, bAsNumber) )
+	endif
+    endif
 endfunction
 
-function _Mul takes integer ctx, integer ip returns nothing
+function _Mul takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer r = Value#_mul(_numbercontext(a), _numbercontext(b))
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _numbercontext(a)
+    local integer bAsNumber = _numbercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__mul")
+    local integer bMetamethod = _getMetamethod(b, "__mul")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("Attempt to perform arithmethic on a string value")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_mul(aAsNumber, bAsNumber) )
+	endif
+    endif
 endfunction
 
-function _Div takes integer ctx, integer ip returns nothing
+function _Div takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer r = Value#_div(_numbercontext(a), _numbercontext(b))
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _numbercontext(a)
+    local integer bAsNumber = _numbercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__div")
+    local integer bMetamethod = _getMetamethod(b, "__div")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("Attempt to perform arithmethic on a string value")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_div(aAsNumber, bAsNumber) )
+	endif
+    endif
 endfunction
 
-function _IDiv takes integer ctx, integer ip returns nothing
+function _IDiv takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer r = Value#_idiv(_numbercontext(a), _numbercontext(b))
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _numbercontext(a)
+    local integer bAsNumber = _numbercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__idiv")
+    local integer bMetamethod = _getMetamethod(b, "__idiv")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("Attempt to perform arithmethic on a string value")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_idiv(aAsNumber, bAsNumber) )
+	endif
+    endif
 endfunction
 
-function _Mod takes integer ctx, integer ip returns nothing
+function _Mod takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer r = Value#_mod(_numbercontext(a), _numbercontext(b))
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _numbercontext(a)
+    local integer bAsNumber = _numbercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__mod")
+    local integer bMetamethod = _getMetamethod(b, "__mod")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("Attempt to perform arithmethic on a string value")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_mod(aAsNumber, bAsNumber) )
+	endif
+    endif
 endfunction
 
-function _Exp takes integer ctx, integer ip returns nothing
+function _Exp takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
-    local integer r = Value#_exp(_numbercontext(a), _numbercontext(b))
-    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], r)
+    local integer ret = Value#_table()
+
+    local integer aAsNumber = _numbercontext(a)
+    local integer bAsNumber = _numbercontext(b)
+
+    local integer aMetamethod = _getMetamethod(a, "__exp")
+    local integer bMetamethod = _getMetamethod(b, "__exp")
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    else
+	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
+	    call Print#_error("Attempt to perform arithmethic on a string value")
+	else
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_exp(aAsNumber, bAsNumber) )
+	endif
+    endif
 endfunction
 
 function _EQ takes integer ctx, integer ip returns nothing
@@ -562,23 +720,23 @@ function _step takes integer interpreter returns boolean
     elseif ins == Ins#_BXor then
 	call _BXor(ctx, ip)
     elseif ins == Ins#_Neg then
-	call _Neg(ctx, ip)
+	call _Neg(ctx, ip, interpreter)
     elseif ins == Ins#_Add then
-	call _Add(ctx, ip)
+	call _Add(ctx, ip, interpreter)
     elseif ins == Ins#_Len then
 	call _Len(ctx, ip)
     elseif ins == Ins#_Sub then
-	call _Sub(ctx, ip)
+	call _Sub(ctx, ip, interpreter)
     elseif ins == Ins#_Mul then
-	call _Mul(ctx, ip)
+	call _Mul(ctx, ip, interpreter)
     elseif ins == Ins#_Div then
-	call _Div(ctx, ip)
+	call _Div(ctx, ip, interpreter)
     elseif ins == Ins#_IDiv then
-	call _IDiv(ctx, ip)
+	call _IDiv(ctx, ip, interpreter)
     elseif ins == Ins#_Mod then
-	call _Mod(ctx, ip)
+	call _Mod(ctx, ip, interpreter)
     elseif ins == Ins#_Exp then
-	call _Exp(ctx, ip)
+	call _Exp(ctx, ip, interpreter)
     elseif ins == Ins#_EQ then
 	call _EQ(ctx, ip)
     elseif ins == Ins#_NEQ then
@@ -595,8 +753,6 @@ function _step takes integer interpreter returns boolean
 	call _Table(ctx, ip)
     elseif ins == Ins#_Jump then
 	call _Jump(ctx, ip)
-    elseif ins == Ins#_JumpT then
-	call _JumpT(ctx, ip)
     elseif ins == Ins#_JumpT then
 	call _JumpT(ctx, ip)
     elseif ins == Ins#_Enter then

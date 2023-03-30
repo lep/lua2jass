@@ -125,8 +125,8 @@ function _setmetatable takes integer params_tbl, integer ctx, integer interprete
 endfunction
 
 function _getmetatable takes integer tbl, integer ctx, integer interpreter returns nothing
-    local integer return_table = Table#_get( params_tbl, 0 )
-    local integer table = Table#_get( params_tbl, 1 )
+    local integer return_table = Table#_get( tbl, 0 )
+    local integer table = Table#_get( tbl, 1 )
     local integer metatable
     if Value#_Type[table] != Types#_Table then
 	call Table#_set( Value#_Int[return_table], 1, Value#_Nil )
