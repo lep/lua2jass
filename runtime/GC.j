@@ -136,7 +136,9 @@ function _work_vqueue takes nothing returns nothing
                 set ls2 = List#_next[ls2]
             endloop
 
-            call _push_value( Value#_Int3[value] )
+	    if Value#_Int3[value] != 0 then
+		call _push_value( Value#_Int3[value] )
+	    endif
 
 	elseif ty == Types#_Lambda then
 	    call _push_context( Value#_Int[value] )
