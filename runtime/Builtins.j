@@ -54,6 +54,22 @@ function _collectgarbage takes integer tbl, integer ctx, integer interpreter ret
     call GC#_full_mark_and_sweep()
 endfunction
 
+function _rawset takes integer ptbl, integer ctx, integer interpreter returns nothing
+    local integer tbl = Table#_get( ptbl, 1 )
+    local integer key = Table#_get( ptbl, 2 )
+    local integer val = Table#_get( ptbl, 3 )
+
+    call Value#_settable( tbl, key, val )
+endfunction
+
+function _rawget takes integer ptbl, integer ctx, integer interpreter returns nothing
+    local integer ret = Table#_get( ptbl, 0 )
+    local integer tbl = Table#_get( ptbl, 1 )
+    local integer key = Table#_get( ptbl, 2 )
+
+    call Table#_set( Value#_Int[ret], 1, Value#_gettable(tbl, key) )
+endfunction
+
 function _print takes integer tbl, integer ctx, integer interpreter returns nothing
     local string r = ""
     local integer k = 1
