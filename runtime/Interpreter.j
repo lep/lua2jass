@@ -870,23 +870,55 @@ function _Ret takes integer ctx, integer interpreter returns boolean
     return ret
 endfunction
 
+function _gettable_rec takes integer tbl, integer key, integer interpreter returns integer
+    local integer metamethod = _getMetamethod(tbl, "__index")
+    local integer val = Value#_gettable( tbl, key )
+    local integer ret = Value#_table()
+
+    if val == Value#_Nil and metamethod != Value#_Nil then
+	if Value#_Type[metamethod] == Types#_Table then
+	    return _gettable_rec(metamethod, key, interpreter)
+	else
+	    call Call#_call2( metamethod, tbl, key, ret, interpreter )
+	    return Table#_get( Value#_Int[ret], 1 )
+	endif
+    else
+	return val
+    endif
+endfunction
+
 /// I guess in the future when we handle operators by firstly checking for
 /// tables and metatables and such and handle the "native" behaviour in the
 /// Value "struct".
-function _GetTable takes integer ctx, integer ip returns nothing
-    local integer reg	    = Ins#_op1[ip]
-    local integer value_tbl = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer value_key = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
+function _GetTable takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer reg = Ins#_op1[ip]
+    local integer tbl = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
+    local integer key = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
 
-    call Table#_set( Context#_tmps[ctx], reg, Value#_gettable( value_tbl, value_key))
+    call Table#_set( Context#_tmps[ctx], reg, _gettable_rec(tbl, key, interpreter) )
 endfunction
 
-function _SetTable takes integer ctx, integer ip returns nothing
+function _settable_rec takes integer tbl, integer key, integer val, integer interpreter returns nothing
+    local integer metamethod = _getMetamethod(tbl, "__index")
+    local integer ret = Value#_table()
+
+    if metamethod != Value#_Nil then
+	if Value#_Type[metamethod] == Types#_Table then
+	    call _settable_rec(metamethod, key, val, interpreter)
+	else
+	    call Call#_call3( metamethod, tbl, key, val, ret, interpreter )
+	endif
+    else
+	call Value#_settable(tbl, key, val)
+    endif
+endfunction
+
+function _SetTable takes integer ctx, integer ip, integer interpreter returns nothing
     local integer value_tbl = Table#_get( Context#_tmps[ctx], Ins#_op1[ip] )
     local integer value_key = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
     local integer value_val = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
 
-    call Value#_settable(value_tbl, value_key, value_val)
+    call _settable_rec( value_tbl, value_key, value_val, interpreter )
 endfunction
 
 function _stringOrNumber takes integer v returns boolean
@@ -1020,9 +1052,9 @@ function _step takes integer interpreter returns boolean
 	//endif
     elseif ins == Ins#_SetTable then
 	//call Print#_print(" SetTable at IP = "+I2S(ip))
-	call _SetTable(ctx, ip)
+	call _SetTable(ctx, ip, interpreter)
     elseif ins == Ins#_GetTable then
-	call _GetTable(ctx, ip)
+	call _GetTable(ctx, ip, interpreter)
     elseif ins == Ins#_Append then
 	call _Append(ctx, ip)
     elseif ins == Ins#_GetList then
