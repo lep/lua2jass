@@ -877,11 +877,32 @@ function _SetTable takes integer ctx, integer ip returns nothing
     call Value#_settable(value_tbl, value_key, value_val)
 endfunction
 
+function _stringOrNumber takes integer v returns boolean
+    local integer ty = Value#_Type[v]
+    return ty == Jass#_string or ty == Jass#_real or ty == Jass#_integer
+endfunction
+
 function _Concat takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
     local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
-    local integer r = Value#_concat( a, b, interpreter )
-    call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], r )
+
+    local integer aMetamethod = _getMetamethod(a, "__concat")
+    local integer bMetamethod = _getMetamethod(b, "__concat")
+
+    local integer ret = Value#_table()
+
+    if aMetamethod != Value#_Nil then
+	call Call#_call2( aMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif bMetamethod != Value#_Nil then
+	call Call#_call2( bMetamethod, a, b, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
+    elseif _stringOrNumber(a) and _stringOrNumber(b) then
+	call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], Value#_concat(a,b) )
+    else
+	call Print#_error("attempt to concatenate non-string, non-number values")
+    endif
+
 endfunction
 
 function _step takes integer interpreter returns boolean

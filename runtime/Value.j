@@ -835,9 +835,7 @@ function _tostring takes integer v, integer interpreter returns string
     endif
 endfunction
 
-// @recursive
-// TODO: concat actually doesn't call __tostring metamethod
-function _concat takes integer a, integer b, integer interpreter returns integer
+function _concat takes integer a, integer b returns integer
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
     local string sa = _tostring_concat(a)
