@@ -38,7 +38,7 @@ open my $out, ">", $outfile || die;
 # Ugly, but works
 while(my $line = <$cpp>){
     $line =~ s(^#)(//);
-    $line =~ s<([\w\d/]+)#><$prefix.replace_slash($1)>ge;
+    $line =~ s<([\w\d/]+)#_><$prefix.replace_slash($1).'_'>ge;
     $line =~ s<__><%%>g;
     $line =~ s/\b_/${scope}_/g;
     $line =~ s/%%/__/g;

@@ -17,6 +17,8 @@ globals
 endglobals
 #include "alloc.j"
 
+// TODO: replace every Call#_call<n> with manual stack handling
+
 function _getMetamethod takes integer value, string method returns integer
     if Value#_Type[value] != Types#_Table then
 	return Value#_litnil()
@@ -740,12 +742,22 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
     endif
 endfunction
 
-function _Len takes integer ctx, integer ip returns nothing
-    local integer reg_target = Ins#_op1[ip]
-    local integer val_source = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
-    local integer val_res    = Value#_len( val_source )
+function _Len takes integer ctx, integer ip, integer interpreter returns nothing
+    local integer r = Ins#_op1[ip]
+    local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
+    local integer metamethod = _getMetamethod(a, "__len")
+    local integer ty = Value#_Type[a]
+    local integer ret = Value#_table()
 
-    call Table#_set( Context#_tmps[ctx], reg_target, val_res )
+    if ty == Jass#_string or ( ty == Types#_Table and metamethod == Value#_Nil) then
+	call Table#_set( Context#_tmps[ctx], r, Value#_len(a) )
+    elseif metamethod != Value#_Nil then
+	call Call#_call1( metamethod, a, ret, interpreter )
+	call Table#_set(Context#_tmps[ctx], r, Table#_get( Value#_Int[ret], 1 ))
+    else
+	call Print#_error("attempt to get length of wrong type")
+    endif
+
 endfunction
 
 function _GetList takes integer ctx, integer ip returns nothing
@@ -942,7 +954,7 @@ function _step takes integer interpreter returns boolean
     elseif ins == Ins#_Add then
 	call _Add(ctx, ip, interpreter)
     elseif ins == Ins#_Len then
-	call _Len(ctx, ip)
+	call _Len(ctx, ip, interpreter)
     elseif ins == Ins#_Sub then
 	call _Sub(ctx, ip, interpreter)
     elseif ins == Ins#_Mul then
