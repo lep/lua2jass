@@ -17,8 +17,6 @@ globals
 endglobals
 #include "alloc.j"
 
-// TODO: replace every Call#_call<n> with manual stack handling
-
 function _getMetamethod takes integer value, string method returns integer
     if Value#_Type[value] != Types#_Table then
 	return Value#_litnil()
@@ -92,6 +90,7 @@ function _Complement takes integer ctx, integer ip, integer interpreter returns 
     else
 	if aAsNumber == Value#_Nil then
 	    call Print#_error("number has no integer representation")
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_complement(a) )
 	endif
@@ -118,6 +117,7 @@ function _ShiftL takes integer ctx, integer ip, integer interpreter returns noth
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
 	    call Print#_error("number has no integer representation")
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_shiftl(a, b) )
 	endif
@@ -144,6 +144,7 @@ function _ShiftR takes integer ctx, integer ip, integer interpreter returns noth
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
 	    call Print#_error("number has no integer representation")
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_shiftr(a, b) )
 	endif
@@ -170,6 +171,7 @@ function _BAnd takes integer ctx, integer ip, integer interpreter returns nothin
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
 	    call Print#_error("number has no integer representation")
+	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_band(a, b) )
 	endif

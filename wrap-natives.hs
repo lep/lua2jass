@@ -215,8 +215,9 @@ compile (Programm ts) = do
             , ("print", "Builtins#_print")
             , ("FourCC", "Builtins#_FourCC")
             , ("collectgarbage", "Builtins#_collectgarbage")
-	    , ("rawset", "Builtins#_rawset")
-	    , ("rawget", "Builtins#_rawget")
+            , ("rawset", "Builtins#_rawset")
+            , ("rawget", "Builtins#_rawget")
+            , ("pcall", "Builtins#_pcall")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")

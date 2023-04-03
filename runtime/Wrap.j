@@ -8,11 +8,11 @@ globals
     integer _Ret
 endglobals
 
-function _call_function takes integer v, integer params, integer interpreter returns nothing
+function _call_function takes integer v, integer params, integer interpreter returns boolean
     set _Param1 = v
     set _Param2 = params
     set _Param3 = interpreter
-    call TriggerEvaluate(_WrapAround)
+    return TriggerEvaluate(_WrapAround)
 endfunction
 
 function _init takes nothing returns nothing

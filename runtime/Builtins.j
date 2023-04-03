@@ -183,6 +183,32 @@ function _ForGroup takes integer tbl, integer ctx, integer interpreter returns n
     call ForGroup( Natives#_convert2group(arg1, interpreter), function Builtin/Boolexpr#_cb)
 endfunction
 
+
+function _pcall takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r0 = Table#_get(tbl, 0)
+    local integer f = Table#_get(tbl, 1)
+    local integer args = Table#_alloc()
+    local integer r1 = Value#_table()
+    local integer frame = Interpreter#_stack_top[interpreter]
+    local boolean result
+
+    call Table#_getlist( args, tbl, 2 )
+    call Table#_set( args, 0, r1 )
+
+    set Print#_protectedCall = true
+    set result = Wrap#_call_function( f, args, interpreter )
+    set Print#_protectedCall = false
+
+    call Table#_set( Value#_Int[r0], 1, Value#_litbool(result) )
+
+    if not result then
+	call Table#_set( Value#_Int[r0], 2, Value#_litstring(Print#_getLastErrorMessage()) )
+	set Interpreter#_stack_top[interpreter] = frame
+    else
+	call Table#_append( Value#_Int[r0], Value#_Int[r1], 1 )
+    endif
+endfunction
+
 function _init takes nothing returns nothing
     set _ascii_i[966] = 8
     set _ascii_i[1110] = 9
