@@ -1,5 +1,5 @@
 // scope Builtins
-// REQUIRES Print Value Table Context Natives Builtin/Boolexpr GC
+// REQUIRES Print Value Table Context Natives Builtin/Boolexpr GC Error
 
 
 globals
@@ -117,17 +117,17 @@ function _setmetatable takes integer params_tbl, integer ctx, integer interprete
     local integer current_metatable = Value#_Int3[table]
 
     if Value#_Type[table] != Types#_Table then
-	call Print#_error("Bad argument #1 to 'setmetatable' (table expected)")
+	call Error#_error_str("Bad argument #1 to 'setmetatable' (table expected)")
 	return
     endif
 
     if Value#_Type[metatable] != Types#_Table and Value#_Type[metatable] != Types#_Nil  then
-	call Print#_error("Bad argument #2 to 'setmetatable' (table or nil expected)")
+	call Error#_error_str("Bad argument #2 to 'setmetatable' (table or nil expected)")
 	return
     endif
 
     if Value#_gettable(metatable, Value#_litstring("__metatable")) != Value#_Nil then
-	call Print#_error("Cannot change protected metatable")
+	call Error#_error_str("Cannot change protected metatable")
 	return
     endif
 
@@ -195,18 +195,52 @@ function _pcall takes integer tbl, integer ctx, integer interpreter returns noth
     call Table#_getlist( args, tbl, 2 )
     call Table#_set( args, 0, r1 )
 
-    set Print#_protectedCall = true
+    set Error#_inProtectedCall = Error#_inProtectedCall + 1
     set result = Wrap#_call_function( f, args, interpreter )
-    set Print#_protectedCall = false
+    set Error#_inProtectedCall = Error#_inProtectedCall - 1
 
     call Table#_set( Value#_Int[r0], 1, Value#_litbool(result) )
 
     if not result then
-	call Table#_set( Value#_Int[r0], 2, Value#_litstring(Print#_getLastErrorMessage()) )
+	call Table#_set( Value#_Int[r0], 2, Error#_getLastErrorValue() )
 	set Interpreter#_stack_top[interpreter] = frame
     else
 	call Table#_append( Value#_Int[r0], Value#_Int[r1], 1 )
     endif
+endfunction
+
+function _xpcall takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r0 = Table#_get(tbl, 0)
+    local integer f = Table#_get(tbl, 1)
+    local integer msgh = Table#_get(tbl, 2)
+    local integer args = Table#_alloc()
+    local integer r1 = Value#_table()
+    local integer r2 = Value#_table()
+    local integer frame = Interpreter#_stack_top[interpreter]
+    local boolean result
+
+    call Table#_getlist( args, tbl, 3 )
+    call Table#_set( args, 0, r1 )
+
+    set Error#_inProtectedCall = Error#_inProtectedCall + 1
+    set result = Wrap#_call_function( f, args, interpreter )
+    set Error#_inProtectedCall = Error#_inProtectedCall - 1
+
+    call Table#_set( Value#_Int[r0], 1, Value#_litbool(result) )
+
+    call Call#_call1( msgh, Error#_getLastErrorValue(), r2, interpreter )
+
+
+    if not result then
+	call Table#_set( Value#_Int[r0], 2, Table#_get( Value#_Int[r2], 1 ) )
+	set Interpreter#_stack_top[interpreter] = frame
+    else
+	call Table#_append( Value#_Int[r0], Value#_Int[r1], 1 )
+    endif
+endfunction
+
+function _error takes integer tbl, integer ctx, integer interpreter returns nothing
+    call Error#_error( Table#_get(tbl, 1) )
 endfunction
 
 function _init takes nothing returns nothing

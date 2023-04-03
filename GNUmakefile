@@ -1,7 +1,7 @@
 RUNTIME := runtime/Ins.j runtime/Interpreter.j runtime/Table.j runtime/Value.j  
 RUNTIME += runtime/Context.j runtime/StringTable.j runtime/List.j runtime/Print.j
 RUNTIME += runtime/Types.j runtime/Builtins.j runtime/Wrap.j runtime/Call.j
-RUNTIME += runtime/GC.j runtime/Deque.j
+RUNTIME += runtime/GC.j runtime/Deque.j runtime/Error.j
 RUNTIME += runtime/Builtin/Coroutine.j
 RUNTIME += runtime/Builtin/Trigger.j
 RUNTIME += runtime/Builtin/Timer.j

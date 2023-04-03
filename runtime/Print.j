@@ -18,10 +18,7 @@ function _print takes string s returns integer
 endfunction
 
 function _error takes string s returns integer
-    set _lastErrorMsg = s
-    if not _protectedCall then
-        call DisplayTimedTextToPlayer(Player(0), 0, 0, 60, "|c00ff0000"+s+"|r")
-    endif
+    call DisplayTimedTextToPlayer(Player(0), 0, 0, 60, "|c00ff0000"+s+"|r")
     call I2S(1 / 0)
     return 0
 endfunction
