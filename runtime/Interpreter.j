@@ -960,7 +960,7 @@ function _step takes integer interpreter returns boolean
     //call Print#_print("_step ("+I2S(ctx)+")")
 
     if ctx == 0 or ip == 0 or ins == 0 then
-	call Print#_print("  - stopping via: ctx="+I2S(ctx)+",ip="+I2S(ip)+",ins="+I2S(ins))
+	call Print#_warn("  - stopping via: ctx="+I2S(ctx)+",ip="+I2S(ip)+",ins="+I2S(ins))
 	return false
     endif
 

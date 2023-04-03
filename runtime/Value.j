@@ -237,7 +237,7 @@ endfunction
 
 // a <= b ~~ not (b > a)
 function _lte_numeric_noalloc takes integer a, integer b returns boolean
-    return not _lte_numeric_noalloc(b, a)
+    return not _lt_numeric_noalloc(b, a)
 endfunction
 
 
