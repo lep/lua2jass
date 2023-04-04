@@ -7,7 +7,20 @@ globals
     integer array _ascii_h
     integer array _ascii_y
     string array _ascii_c
+
+
+    boolean _trace = false
 endglobals
+
+function _enable_trace takes integer tbl, integer ctx, integer interpreter returns nothing
+    set _trace = true
+endfunction
+
+function _disable_trace takes integer tbl, integer ctx, integer interpreter returns nothing
+    set _trace = false
+endfunction
+
+
 
 // taken from Bribe (https://www.hiveworkshop.com/threads/lua-vjass-ascii.190746/)
 function _Char2Ascii takes string p returns integer
@@ -241,6 +254,14 @@ endfunction
 
 function _error takes integer tbl, integer ctx, integer interpreter returns nothing
     call Error#_error( Table#_get(tbl, 1) )
+endfunction
+
+function _type takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer v = Table#_get(tbl, 1)
+    local integer ty = Value#_litstring( Types#_getName(Value#_Type[v]) )
+
+    call Table#_set( Value#_Int[r], 1, ty )
 endfunction
 
 function _init takes nothing returns nothing

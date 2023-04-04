@@ -118,3 +118,13 @@ function _resume takes integer tbl, integer ctx, integer interpreter returns not
     endif
 endfunction
 
+
+function _register takes integer ctx returns nothing
+    local integer coroutine_table = Value#_table()
+    call Value#_settable( coroutine_table, Value#_litstring("create"), Context#_get(ctx, "$co_create") )
+    call Value#_settable( coroutine_table, Value#_litstring("yield"), Context#_get(ctx, "$co_yield") )
+    call Value#_settable( coroutine_table, Value#_litstring("resume"), Context#_get(ctx, "$co_resume") )
+
+    call Context#_set( ctx, "coroutine", coroutine_table )
+endfunction
+

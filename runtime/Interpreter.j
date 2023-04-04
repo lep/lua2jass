@@ -1086,12 +1086,15 @@ function _debug_start_main takes nothing returns nothing
     set Context#_ret_behaviour[ctx] = _StopInterpreter
     set Context#_type[ctx] = Context#_Function
 
+
+
     set _stack_top[interpreter] = List#_cons(0)
     set _ctx[_stack_top[interpreter]] = ctx
 
     call Print#_print("_debug_start_main initial context: "+I2S(ctx))
 
     call Dispatch#_register(ctx)
+    call Builtin/Coroutine#_register(ctx)
 
     loop
 	exitwhen not _step(interpreter)

@@ -206,9 +206,9 @@ compile (Programm ts) = do
 
         
         extraFunctions =
-            [ ("co_create", "Builtin/Coroutine#_create")
-            , ("co_yield", "Builtin/Coroutine#_yield")
-            , ("co_resume", "Builtin/Coroutine#_resume")
+            [ ("$co_create", "Builtin/Coroutine#_create")
+            , ("$co_yield", "Builtin/Coroutine#_yield")
+            , ("$co_resume", "Builtin/Coroutine#_resume")
 
             , ("setmetatable", "Builtins#_setmetatable")
             , ("getmetatable", "Builtins#_getmetatable")
@@ -220,6 +220,10 @@ compile (Programm ts) = do
             , ("pcall", "Builtins#_pcall")
             , ("xpcall", "Builtins#_xpcall")
             , ("error", "Builtins#_error")
+            , ("type", "Builtins#_type")
+
+            , ("$enable_trace", "Builtins#_enable_trace")
+            , ("$disable_trace", "Builtins#_disable_trace")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")
