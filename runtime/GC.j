@@ -94,6 +94,22 @@ function _handle_boolexpr takes integer value returns nothing
     endif
 endfunction
 
+function _handle_coroutine takes integer co returns nothing
+    local integer ls = Table#_head[ Builtin/Coroutine#_return_yield[co] ]
+
+    if Builtin/Coroutine#_return_resume[co] != 0 then
+	call _push_value( Builtin/Coroutine#_return_resume[co] )
+    endif
+
+    set ls = Builtin/Coroutine#_stop_frame[co]
+    loop
+    exitwhen ls == 0
+	call _push_context( Interpreter#_ctx[ls] )
+	exitwhen ls == Builtin/Coroutine#_base_frame[co]
+	set ls = List#_next[ls]
+    endloop
+endfunction
+
 function _work_vqueue takes nothing returns nothing
     local integer i = VALUE_MAX_STEPS
     local integer ls
@@ -142,18 +158,9 @@ function _work_vqueue takes nothing returns nothing
 
 	elseif ty == Types#_Lambda then
 	    call _push_context( Value#_Int[value] )
+
 	elseif ty == Types#_Coroutine then
-	    if Builtin/Coroutine#_return_resume[value] != 0 then
-		call _push_context(Builtin/Coroutine#_return_resume[value])
-	    endif
-	    call _push_context(Builtin/Coroutine#_return_yield[value])
-	    set ls2 = Builtin/Coroutine#_stop_frame[value]
-	    loop
-	    exitwhen ls2 == Builtin/Coroutine#_base_frame[value]
-	    exitwhen ls2 == 0
-		call _push_context( Interpreter#_ctx[ls2] )
-		set ls2 = List#_next[ls2]
-	    endloop
+	    call _handle_coroutine( value )
 	elseif ty == Types#_Foreign then
 	    if Value#_Int[value] == Jass#_trigger then
 		set ls2 = Builtin/Trigger#_trigger_actions[value]

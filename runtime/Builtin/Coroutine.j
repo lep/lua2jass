@@ -7,10 +7,18 @@ globals
     constant integer _StatusDead = 2
 
     integer array _interpreter
+
+    // _base_frame : ListEntry into Interpreter#_ctx
     integer array _base_frame
+    // _stop_frame : ListEntry into Interpreter#_ctx
     integer array _stop_frame
+
     integer array _status
+
+    // _return_yield : Table
     integer array _return_yield
+
+    // _return_resume : Value
     integer array _return_resume
 endglobals
 
