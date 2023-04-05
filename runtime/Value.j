@@ -18,10 +18,15 @@ globals
     integer array _key
 
 
+    // error stuff
+    integer _lastErrorValue
+    integer _inProtectedCall = 0
+
+
     // constant
     integer _Nil
 
-    boolean _error
+    boolean _parse_number_error
 
     boolean array _mark
 
@@ -29,6 +34,42 @@ globals
 endglobals
 
 #include "alloc.j"
+
+
+function _new takes nothing returns integer
+    return _alloc()
+endfunction
+
+// @alloc
+function _litstring takes string a returns integer
+    local integer new = _new()
+    set _Type[new] = Jass#_string
+    set _String[new] = a
+    return new
+endfunction
+
+
+function _getLastErrorValue takes nothing returns integer
+    local integer i = _lastErrorValue
+    set _lastErrorValue = 0
+    return i
+endfunction
+
+function _error takes integer v returns nothing
+    set _lastErrorValue = v
+    if _inProtectedCall == 0 then
+        if _Type[v] != Jass#_string then
+            call Print#_error("error object not a string" )
+        else
+            call Print#_error(_String[v])
+        endif
+    endif
+    call I2S(1 / 0)
+endfunction
+
+function _error_str takes string s returns nothing
+    call _error(_litstring(s))
+endfunction
 
 function _B2S takes boolean b returns string
     if b then
@@ -38,8 +79,9 @@ function _B2S takes boolean b returns string
     endif
 endfunction
 
-function _new takes nothing returns integer
-    return _alloc()
+function _isnumber takes integer v returns boolean
+    local integer ty = _Type[v]
+    return ty == Jass#_real or ty == Jass#_integer
 endfunction
 
 // @noalloc
@@ -243,7 +285,7 @@ function _lt_numeric_noalloc takes integer a, integer b returns boolean
     elseif ty_a == Jass#_real and ty_b == Jass#_real then
 	return _Real[a] < _Real[b]
     else
-	call Print#_error("_lt: Error. Should not happen")
+	call _error_str("bad comparison (<)")
 	return false
     endif
 endfunction
@@ -275,14 +317,6 @@ function _litbool takes boolean a returns integer
     local integer new = _new()
     set _Type[new] = Jass#_boolean
     set _Bool[new] = a
-    return new
-endfunction
-
-// @alloc
-function _litstring takes string a returns integer
-    local integer new = _new()
-    set _Type[new] = Jass#_string
-    set _String[new] = a
     return new
 endfunction
 
@@ -664,7 +698,7 @@ function _parse_number takes string s returns real
 
     //call Print#_print("_parse_number("+s+")")
 
-    set _error = false
+    set _parse_number_error = false
 
 
     // ltrim
@@ -698,7 +732,7 @@ function _parse_number takes string s returns real
 	set tmp = _parse_digit(c)
 
 	if c == "." and dot then
-	    set _error = true
+	    set _parse_number_error = true
 	    return 0.0
 	elseif c == "." then
 	    set dot = true
@@ -715,7 +749,7 @@ function _parse_number takes string s returns real
 	    else
 		set tmp = _parse_digit(c)
 		if tmp < 0 or tmp > 9 then
-		    set _error = true
+		    set _parse_number_error = true
 		    return 0.0
 		endif
 	    endif
@@ -725,7 +759,7 @@ function _parse_number takes string s returns real
 		set c = SubString(s, i, i+1)
 		set tmp = _parse_digit(c)
 		if tmp < 0 or tmp >= 10 then
-		    set _error = true
+		    set _parse_number_error = true
 		    return 0.0
 		endif
 		set exp = exp * 10 + tmp
@@ -733,7 +767,7 @@ function _parse_number takes string s returns real
 	    endloop
 	    exitwhen true
 	elseif tmp >= base then
-	    set _error = true
+	    set _parse_number_error = true
 	    return 0.0
 	elseif tmp < 0 then
 	    set i = i -1
@@ -754,7 +788,7 @@ function _parse_number takes string s returns real
     exitwhen i >= len
 	set c = SubString(s, i, i+1)
 	if c != " " and c != "\t" and c != "\n" and c != "\r" then
-	    set _error = true
+	    set _parse_number_error = true
 	    return 0.0
 	endif
 	set i = i + 1
@@ -939,7 +973,7 @@ function _numbercontext takes integer v returns integer
 	return v
     elseif ty == Jass#_string then
 	set v = _litfloat(_parse_number(Value#_String[v]))
-	if _error then
+	if _parse_number_error then
 	    return _litnil()
 	endif
 	return v

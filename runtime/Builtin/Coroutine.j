@@ -1,5 +1,5 @@
 // scope Builtin/Coroutine
-// REQUIRES Print Table Context Value Error
+// REQUIRES Print Table Context Value
 
 globals
     integer array _ctx2value
@@ -78,7 +78,7 @@ function _yield takes integer tbl, integer ctx, integer interpreter returns noth
 
         set Interpreter#_stack_top[interpreter] = List#_next[head]
     else
-        call Error#_error_str("attempt to yield from outside a coroutine")
+        call Value#_error_str("attempt to yield from outside a coroutine")
     endif
     
 endfunction

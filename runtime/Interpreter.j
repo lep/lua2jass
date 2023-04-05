@@ -36,7 +36,7 @@ function _integercontext takes integer v returns integer
     elseif ty == Jass#_string then
 	set ty = Jass#_real
 	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
-	if Value#_error then
+	if Value#_parse_number_error then
 	    return Value#_litnil()
 	endif
     endif
@@ -70,7 +70,7 @@ function _Complement takes integer ctx, integer ip, integer interpreter returns 
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil then
-	    call Error#_error_str("number has no integer representation")
+	    call Value#_error_str("number has no integer representation")
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_complement(a) )
@@ -97,7 +97,7 @@ function _ShiftL takes integer ctx, integer ip, integer interpreter returns noth
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("number has no integer representation")
+	    call Value#_error_str("number has no integer representation")
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_shiftl(a, b) )
@@ -124,7 +124,7 @@ function _ShiftR takes integer ctx, integer ip, integer interpreter returns noth
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("number has no integer representation")
+	    call Value#_error_str("number has no integer representation")
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_shiftr(a, b) )
@@ -151,7 +151,7 @@ function _BAnd takes integer ctx, integer ip, integer interpreter returns nothin
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("number has no integer representation")
+	    call Value#_error_str("number has no integer representation")
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_litnil() )
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_band(a, b) )
@@ -178,7 +178,7 @@ function _BOr takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("number has no integer representation")
+	    call Value#_error_str("number has no integer representation")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_bor(a, b) )
 	endif
@@ -204,7 +204,7 @@ function _BXor takes integer ctx, integer ip, integer interpreter returns nothin
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("number has no integer representation")
+	    call Value#_error_str("number has no integer representation")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_bxor(a, b) )
 	endif
@@ -224,7 +224,7 @@ function _Neg takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil then
-	    call Error#_error_str("_Neg: Attempt to perform arithmethic on a string value")
+	    call Value#_error_str("_Neg: Attempt to perform arithmethic on a string value")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_neg(aAsNumber) )
 	endif
@@ -250,7 +250,7 @@ function _Add takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("_Add: Attempt to perform arithmethic on a string value " + Value#_tostring_debug(a) +" + "+Value#_tostring_debug(b))
+	    call Value#_error_str("_Add: Attempt to perform arithmethic on a string value " + Value#_tostring_debug(a) +" + "+Value#_tostring_debug(b))
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_add(aAsNumber, bAsNumber) )
 	endif
@@ -276,7 +276,7 @@ function _Sub takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("Attempt to perform arithmethic on a string value")
+	    call Value#_error_str("Attempt to perform arithmethic on a string value")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_sub(aAsNumber, bAsNumber) )
 	endif
@@ -302,7 +302,7 @@ function _Mul takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("Attempt to perform arithmethic on a string value")
+	    call Value#_error_str("Attempt to perform arithmethic on a string value")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_mul(aAsNumber, bAsNumber) )
 	endif
@@ -328,7 +328,7 @@ function _Div takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("Attempt to perform arithmethic on a string value")
+	    call Value#_error_str("Attempt to perform arithmethic on a string value")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_div(aAsNumber, bAsNumber) )
 	endif
@@ -354,7 +354,7 @@ function _IDiv takes integer ctx, integer ip, integer interpreter returns nothin
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("Attempt to perform arithmethic on a string value")
+	    call Value#_error_str("Attempt to perform arithmethic on a string value")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_idiv(aAsNumber, bAsNumber) )
 	endif
@@ -380,7 +380,7 @@ function _Mod takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("Attempt to perform arithmethic on a string value")
+	    call Value#_error_str("Attempt to perform arithmethic on a string value")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_mod(aAsNumber, bAsNumber) )
 	endif
@@ -406,7 +406,7 @@ function _Exp takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("Attempt to perform arithmethic on a string value")
+	    call Value#_error_str("Attempt to perform arithmethic on a string value")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_exp(aAsNumber, bAsNumber) )
 	endif
@@ -491,7 +491,7 @@ function _lt_value takes integer v1, integer v2, integer interpreter returns boo
 	call Call#_call2( bMetamethod, v1, v2, ret, interpreter )
 	return ( Value#_truthy( Table#_get( Value#_Int[ret], 1 ) ))
     else
-	call Error#_error_str("attempt to compare two non-comparable values")
+	call Value#_error_str("attempt to compare two non-comparable values")
 	return false
     endif
 
@@ -738,7 +738,7 @@ function _Len takes integer ctx, integer ip, integer interpreter returns nothing
 	call Call#_call1( metamethod, a, ret, interpreter )
 	call Table#_set(Context#_tmps[ctx], r, Table#_get( Value#_Int[ret], 1 ))
     else
-	call Error#_error_str("attempt to get length of wrong type")
+	call Value#_error_str("attempt to get length of wrong type")
     endif
 
 endfunction
@@ -758,10 +758,10 @@ function _GetList takes integer ctx, integer ip returns nothing
     //call Print#_print("  - offset = "+I2S(offset))
 
     if Value#_Type[val_target] != Types#_Table then
-	call Error#_error_str("Target table not of type table but "+I2S(Value#_Type[val_target]))
+	call Value#_error_str("Target table not of type table but "+I2S(Value#_Type[val_target]))
     endif
     if Value#_Type[val_source] != Types#_Table then
-	call Error#_error_str("Source table not of type table but "+I2S(Value#_Type[val_source]))
+	call Value#_error_str("Source table not of type table but "+I2S(Value#_Type[val_source]))
     endif
 
     //call Builtins#_print(tbl_source, 0, 0)
@@ -797,10 +797,10 @@ function _Append takes integer ctx, integer ip returns nothing
     local integer k = 1
 
     if Value#_Type[val_target] != Types#_Table then
-	call Error#_error_str("Target table not of type table but "+I2S(Value#_Type[val_target]))
+	call Value#_error_str("Target table not of type table but "+I2S(Value#_Type[val_target]))
     endif
     if Value#_Type[val_source] != Types#_Table then
-	call Error#_error_str("Target table not of type table but "+I2S(Value#_Type[val_source]))
+	call Value#_error_str("Target table not of type table but "+I2S(Value#_Type[val_source]))
     endif
 
     call Table#_append( tbl_target, tbl_source, offset )
@@ -848,7 +848,7 @@ function _Ret takes integer ctx, integer interpreter returns boolean
 
 	set _stack_top[interpreter] = List#_next[head]
     else
-	call Error#_error_str("  - no correct context found")
+	call Value#_error_str("  - no correct context found")
     endif
     return ret
 endfunction
@@ -927,7 +927,7 @@ function _Concat takes integer ctx, integer ip, integer interpreter returns noth
     elseif _stringOrNumber(a) and _stringOrNumber(b) then
 	call Table#_set( Context#_tmps[ctx], Ins#_op1[ip], Value#_concat(a,b) )
     else
-	call Error#_error_str("attempt to concatenate non-string, non-number values")
+	call Value#_error_str("attempt to concatenate non-string, non-number values")
     endif
 
 endfunction

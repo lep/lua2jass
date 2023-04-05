@@ -1,5 +1,5 @@
 // scope Builtins
-// REQUIRES Print Value Table Context Natives Builtin/Boolexpr GC Error
+// REQUIRES Print Value Table Context Natives Builtin/Boolexpr GC
 
 
 globals
@@ -130,17 +130,17 @@ function _setmetatable takes integer params_tbl, integer ctx, integer interprete
     local integer current_metatable = Value#_Int3[table]
 
     if Value#_Type[table] != Types#_Table then
-	call Error#_error_str("Bad argument #1 to 'setmetatable' (table expected)")
+	call Value#_error_str("Bad argument #1 to 'setmetatable' (table expected)")
 	return
     endif
 
     if Value#_Type[metatable] != Types#_Table and Value#_Type[metatable] != Types#_Nil  then
-	call Error#_error_str("Bad argument #2 to 'setmetatable' (table or nil expected)")
+	call Value#_error_str("Bad argument #2 to 'setmetatable' (table or nil expected)")
 	return
     endif
 
     if Value#_gettable(metatable, Value#_litstring("__metatable")) != Value#_Nil then
-	call Error#_error_str("Cannot change protected metatable")
+	call Value#_error_str("Cannot change protected metatable")
 	return
     endif
 
@@ -208,14 +208,14 @@ function _pcall takes integer tbl, integer ctx, integer interpreter returns noth
     call Table#_getlist( args, tbl, 2 )
     call Table#_set( args, 0, r1 )
 
-    set Error#_inProtectedCall = Error#_inProtectedCall + 1
+    set Value#_inProtectedCall = Value#_inProtectedCall + 1
     set result = Wrap#_call_function( f, args, interpreter )
-    set Error#_inProtectedCall = Error#_inProtectedCall - 1
+    set Value#_inProtectedCall = Value#_inProtectedCall - 1
 
     call Table#_set( Value#_Int[r0], 1, Value#_litbool(result) )
 
     if not result then
-	call Table#_set( Value#_Int[r0], 2, Error#_getLastErrorValue() )
+	call Table#_set( Value#_Int[r0], 2, Value#_getLastErrorValue() )
 	set Interpreter#_stack_top[interpreter] = frame
     else
 	call Table#_append( Value#_Int[r0], Value#_Int[r1], 1 )
@@ -235,13 +235,13 @@ function _xpcall takes integer tbl, integer ctx, integer interpreter returns not
     call Table#_getlist( args, tbl, 3 )
     call Table#_set( args, 0, r1 )
 
-    set Error#_inProtectedCall = Error#_inProtectedCall + 1
+    set Value#_inProtectedCall = Value#_inProtectedCall + 1
     set result = Wrap#_call_function( f, args, interpreter )
-    set Error#_inProtectedCall = Error#_inProtectedCall - 1
+    set Value#_inProtectedCall = Value#_inProtectedCall - 1
 
     call Table#_set( Value#_Int[r0], 1, Value#_litbool(result) )
 
-    call Call#_call1( msgh, Error#_getLastErrorValue(), r2, interpreter )
+    call Call#_call1( msgh, Value#_getLastErrorValue(), r2, interpreter )
 
 
     if not result then
@@ -253,7 +253,7 @@ function _xpcall takes integer tbl, integer ctx, integer interpreter returns not
 endfunction
 
 function _error takes integer tbl, integer ctx, integer interpreter returns nothing
-    call Error#_error( Table#_get(tbl, 1) )
+    call Value#_error( Table#_get(tbl, 1) )
 endfunction
 
 function _type takes integer tbl, integer ctx, integer interpreter returns nothing
