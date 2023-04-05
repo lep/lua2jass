@@ -235,6 +235,7 @@ compile (Programm ts) = do
             , ("$math.abs", "Builtin/Math#_abs")
             , ("$math.min", "Builtin/Math#_min")
             , ("$math.max", "Builtin/Math#_max")
+            , ("$math.log", "Builtin/Math#_log")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")

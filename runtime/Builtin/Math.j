@@ -1,7 +1,6 @@
 // scope Builtin/Math
 // REQUIRES Print Context Value
 
-// TODO: log, max, min
 // TODO: type, tointeger
 
 function _abs takes integer tbl, integer ctx, integer interpreter returns nothing
@@ -63,7 +62,43 @@ function _fmod takes integer tbl, integer ctx, integer interpreter returns nothi
 
 endfunction
 
+// taken from BlinkBoy <https://www.hiveworkshop.com/threads/snippet-natural-logarithm.108059/>
+function _Ln takes real a returns real
+    local real s = 1.0
+    local real sum = 0.0
+    local real g
+    local real e
+    local integer i = 10
+    loop
+        exitwhen a < bj_E
+        set a = a/bj_E
+        set sum = sum + 1.
+    endloop
+    set e = (a-1.0)/10. //quite accurate for numbers < e
+    set g = s + e
+    loop
+        exitwhen i <= 0 or a <= 1.0
+        set i = i-1
+        set sum = sum + (g-s)*(1./s + 8./(s+g) + 1./g)/6.
+        set s = g
+        set g = s + e
+    endloop
+    return sum
+endfunction
+
 function _log takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get( tbl, 0 )
+    local integer x_value = Table#_get( tbl, 1 )
+    local integer base_value = Table#_get( tbl, 2 )
+
+    set x_value = Value#_numbercontext( x_value )
+    if base_value != 0 then
+        set base_value = Value#_numbercontext( base_value )
+        //set base = Value#_2real( base_value )
+        call Table#_set( Value#_Int[r], 1, Value#_litfloat( _Ln(Value#_2real(x_value, interpreter)) / _Ln(Value#_2real(base_value, interpreter)) ) )
+    else
+        call Table#_set( Value#_Int[r], 1, Value#_litfloat( _Ln(Value#_2real(x_value, interpreter)) ) )
+    endif
 endfunction
 
 function _max takes integer tbl, integer ctx, integer interpreter returns nothing
@@ -178,7 +213,7 @@ function _register takes integer ctx returns nothing
     call Value#_settable( math_table, Value#_litstring("sqrt"), Context#_get(ctx, "SquareRoot") )
     call Value#_settable( math_table, Value#_litstring("tan"), Context#_get(ctx, "Tan") )
 
-    call Value#_settable( math_table, Value#_litstring("pi"), Value#_litfloat(3.141592653) )
+    call Value#_settable( math_table, Value#_litstring("pi"), Value#_litfloat(bj_PI) )
 
     call Value#_settable( math_table, Value#_litstring("random"), Context#_get(ctx, "$math.random") )
     call Value#_settable( math_table, Value#_litstring("randomseed"), Context#_get(ctx, "$math.randomseed") )
@@ -190,6 +225,7 @@ function _register takes integer ctx returns nothing
     call Value#_settable( math_table, Value#_litstring("abs"), Context#_get(ctx, "$math.abs") )
     call Value#_settable( math_table, Value#_litstring("min"), Context#_get(ctx, "$math.min") )
     call Value#_settable( math_table, Value#_litstring("max"), Context#_get(ctx, "$math.max") )
+    call Value#_settable( math_table, Value#_litstring("log"), Context#_get(ctx, "$math.log") )
 
     call Context#_set( ctx, "math", math_table )
 endfunction
