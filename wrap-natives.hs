@@ -206,9 +206,9 @@ compile (Programm ts) = do
 
         
         extraFunctions =
-            [ ("$co_create", "Builtin/Coroutine#_create")
-            , ("$co_yield", "Builtin/Coroutine#_yield")
-            , ("$co_resume", "Builtin/Coroutine#_resume")
+            [ ("$coroutine.create", "Builtin/Coroutine#_create")
+            , ("$coroutine.yield", "Builtin/Coroutine#_yield")
+            , ("$coroutine.resume", "Builtin/Coroutine#_resume")
 
             , ("setmetatable", "Builtins#_setmetatable")
             , ("getmetatable", "Builtins#_getmetatable")
@@ -224,6 +224,15 @@ compile (Programm ts) = do
 
             , ("$enable_trace", "Builtins#_enable_trace")
             , ("$disable_trace", "Builtins#_disable_trace")
+
+            , ("$math.random", "Builtin/Math#_random")
+            , ("$math.randomseed", "Builtin/Math#_randomseed")
+            , ("$math.fmod", "Builtin/Math#_fmod")
+            , ("$math.modf", "Builtin/Math#_modf")
+            , ("$math.atan", "Builtin/Math#_atan")
+            , ("$math.floor", "Builtin/Math#_floor")
+            , ("$math.ceil", "Builtin/Math#_ceil")
+            , ("$math.abs", "Builtin/Math#_abs")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")
@@ -266,7 +275,8 @@ compile (Programm ts) = do
     withFile "auto/Dispatch.j" WriteMode $ \fh -> do
         hPutStrLn fh "// scope Dispatch"
         hPutStrLn fh "// REQUIRES Builtins"
-        hPutStrLn fh "// REQUIRES Builtin/Coroutine Builtin/Trigger Builtin/Timer Builtin/Boolexpr"
+        hPutStrLn fh "// REQUIRES Builtin/Coroutine Builtin/Trigger"
+        hPutStrLn fh "// REQUIRES Builtin/Timer Builtin/Boolexpr Builtin/Math"
         hPutStrLn fh "// REQUIRES Value Context Natives"
         Builder.hPutBuilder fh $ pretty dispatchAst
 

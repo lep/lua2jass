@@ -181,6 +181,17 @@ function _floor takes real r returns integer
     endif
 endfunction
 
+function _ceil takes real r returns integer
+    local integer i = R2I(r)
+    if i == r then
+	return i
+    elseif r > 0 then
+	return R2I(r + 1)
+    else
+	return i
+    endif
+endfunction
+
 
 // @noalloc
 function _mod_real takes real dividend, real divisor returns real
@@ -199,13 +210,15 @@ function _idiv takes integer a, integer b returns integer
     local integer ty_a = _Type[a]
     local integer ty_b = _Type[b]
 
+    //call Print#_print("_idiv "+I2S(ty_a)+","+I2S(ty_b))
+
     if ty_a == Jass#_integer and ty_b == Jass#_integer then
 	set _Type[new] = Jass#_integer
 	set _Int[new] = _floor( I2R(_Int[a]) / _Int[b] )
-    elseif ty_a == Jass#_integer  and ty_b == Jass#_real then
+    elseif ty_a == Jass#_integer and ty_b == Jass#_real then
 	set _Type[new] = Jass#_integer
 	set _Int[new] = _floor( _Int[a] / _Real[b] )
-    elseif ty_b == Jass#_integer  and ty_a == Jass#_real then
+    elseif ty_b == Jass#_integer and ty_a == Jass#_real then
 	set _Type[new] = Jass#_integer
 	set _Int[new] = _floor( _Real[a] / _Int[b] )
     elseif ty_a == Jass#_real and ty_b == Jass#_real then
@@ -914,6 +927,26 @@ function _2boolean takes integer v, integer interpreter returns boolean
         return false
     endif
     return _Bool[v]
+endfunction
+
+
+// @alloc
+function _numbercontext takes integer v returns integer
+    local integer ty = _Type[v]
+    if ty == Jass#_integer then
+	return v
+    elseif ty == Jass#_real then
+	return v
+    elseif ty == Jass#_string then
+	set v = _litfloat(_parse_number(Value#_String[v]))
+	if _error then
+	    return _litnil()
+	endif
+	return v
+    else
+	return _litnil()
+    endif
+	
 endfunction
 
 

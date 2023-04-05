@@ -1,5 +1,6 @@
 // scope Interpreter
 // REQUIRES Value Ins Context Table Print Dispatch Error
+// REQUIRES Builtin/Coroutine Builtin/Math
 
 globals
     #include "alloc-globals.j"
@@ -25,26 +26,6 @@ function _getMetamethod takes integer value, string method returns integer
     else
 	return Value#_gettable( Value#_Int3[value], Value#_litstring(method) )
     endif
-endfunction
-
-// @alloc
-function _numbercontext takes integer v returns integer
-    local integer ty = Value#_Type[v]
-    if ty == Jass#_integer then
-	return v
-    elseif ty == Jass#_real then
-	return v
-    elseif ty == Jass#_string then
-	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
-	if Value#_error then
-	    return Value#_litnil()
-	endif
-	return v
-    else
-	// TODO: metatables
-	return Value#_litnil()
-    endif
-	
 endfunction
 
 // @alloc
@@ -234,7 +215,7 @@ function _Neg takes integer ctx, integer ip, integer interpreter returns nothing
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _numbercontext(a)
+    local integer aAsNumber = Value#_numbercontext(a)
 
     local integer aMetamethod = _getMetamethod(a, "__unm")
 
@@ -243,7 +224,7 @@ function _Neg takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil then
-	    call Error#_error_str("Attempt to perform arithmethic on a string value")
+	    call Error#_error_str("_Neg: Attempt to perform arithmethic on a string value")
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_neg(aAsNumber) )
 	endif
@@ -255,8 +236,8 @@ function _Add takes integer ctx, integer ip, integer interpreter returns nothing
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _numbercontext(a)
-    local integer bAsNumber = _numbercontext(b)
+    local integer aAsNumber = Value#_numbercontext(a)
+    local integer bAsNumber = Value#_numbercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__add")
     local integer bMetamethod = _getMetamethod(b, "__add")
@@ -269,7 +250,7 @@ function _Add takes integer ctx, integer ip, integer interpreter returns nothing
 	call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Table#_get( Value#_Int[ret], 1 ))
     else
 	if aAsNumber == Value#_Nil or bAsNumber == Value#_Nil then
-	    call Error#_error_str("Attempt to perform arithmethic on a string value")
+	    call Error#_error_str("_Add: Attempt to perform arithmethic on a string value " + Value#_tostring_debug(a) +" + "+Value#_tostring_debug(b))
 	else
 	    call Table#_set(Context#_tmps[ctx], Ins#_op1[ip], Value#_add(aAsNumber, bAsNumber) )
 	endif
@@ -281,8 +262,8 @@ function _Sub takes integer ctx, integer ip, integer interpreter returns nothing
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _numbercontext(a)
-    local integer bAsNumber = _numbercontext(b)
+    local integer aAsNumber = Value#_numbercontext(a)
+    local integer bAsNumber = Value#_numbercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__sub")
     local integer bMetamethod = _getMetamethod(b, "__sub")
@@ -307,8 +288,8 @@ function _Mul takes integer ctx, integer ip, integer interpreter returns nothing
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _numbercontext(a)
-    local integer bAsNumber = _numbercontext(b)
+    local integer aAsNumber = Value#_numbercontext(a)
+    local integer bAsNumber = Value#_numbercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__mul")
     local integer bMetamethod = _getMetamethod(b, "__mul")
@@ -333,8 +314,8 @@ function _Div takes integer ctx, integer ip, integer interpreter returns nothing
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _numbercontext(a)
-    local integer bAsNumber = _numbercontext(b)
+    local integer aAsNumber = Value#_numbercontext(a)
+    local integer bAsNumber = Value#_numbercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__div")
     local integer bMetamethod = _getMetamethod(b, "__div")
@@ -359,8 +340,8 @@ function _IDiv takes integer ctx, integer ip, integer interpreter returns nothin
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _numbercontext(a)
-    local integer bAsNumber = _numbercontext(b)
+    local integer aAsNumber = Value#_numbercontext(a)
+    local integer bAsNumber = Value#_numbercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__idiv")
     local integer bMetamethod = _getMetamethod(b, "__idiv")
@@ -385,8 +366,8 @@ function _Mod takes integer ctx, integer ip, integer interpreter returns nothing
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _numbercontext(a)
-    local integer bAsNumber = _numbercontext(b)
+    local integer aAsNumber = Value#_numbercontext(a)
+    local integer bAsNumber = Value#_numbercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__mod")
     local integer bMetamethod = _getMetamethod(b, "__mod")
@@ -411,8 +392,8 @@ function _Exp takes integer ctx, integer ip, integer interpreter returns nothing
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _numbercontext(a)
-    local integer bAsNumber = _numbercontext(b)
+    local integer aAsNumber = Value#_numbercontext(a)
+    local integer bAsNumber = Value#_numbercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__exp")
     local integer bMetamethod = _getMetamethod(b, "__exp")
@@ -966,7 +947,9 @@ function _step takes integer interpreter returns boolean
 
     set Context#_ip[ctx] = Context#_ip[ctx] + 1
     
-    //call Print#_print("Executing instruction ("+I2S(ip)+") "+ Ins#_Name[ins]+" ctx("+I2S(ctx)+")")
+    if Builtins#_trace then
+	call Print#_print("Executing instruction ("+I2S(ip)+") "+ Ins#_Name[ins]+" ctx("+I2S(ctx)+")")
+    endif
 
     // TODO: binsearch
     if ins == Ins#_Not then
@@ -1095,6 +1078,7 @@ function _debug_start_main takes nothing returns nothing
 
     call Dispatch#_register(ctx)
     call Builtin/Coroutine#_register(ctx)
+    call Builtin/Math#_register(ctx)
 
     loop
 	exitwhen not _step(interpreter)
