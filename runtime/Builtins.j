@@ -83,6 +83,15 @@ function _rawget takes integer ptbl, integer ctx, integer interpreter returns no
     call Table#_set( Value#_Int[ret], 1, Value#_gettable(tbl, key) )
 endfunction
 
+function _rawequal takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer ret = Table#_get( tbl, 0 )
+    local integer a = Table#_get( tbl, 1 )
+    local integer b = Table#_get( tbl, 2 )
+
+    call Table#_set( Value#_Int[ret], 1, Value#_litbool(Value#_rawequal_noalloc(a,b)))
+
+endfunction
+
 function _print takes integer tbl, integer ctx, integer interpreter returns nothing
     local string r = ""
     local integer k = 1
@@ -283,6 +292,30 @@ function _select takes integer tbl, integer ctx, integer interpreter returns not
 	call Table#_getlist( Value#_Int[r], tbl, 1 + Value#_Int[index] )
     endif
     
+endfunction
+
+function _ipairs_next takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer a_tbl = Table#_get(tbl, 1)
+    local integer a_idx = Value#_add( Table#_get(tbl, 2), Value#_litint(1) )
+    local integer r0 = Value#_gettable(a_tbl, a_idx)
+
+    if r0 == Value#_Nil then
+	call Table#_set( Value#_Int[r], 1, r0 )
+    else
+	call Table#_set( Value#_Int[r], 1, a_idx)
+	call Table#_set( Value#_Int[r], 2, r0 )
+    endif
+
+endfunction
+
+function _ipairs takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer a_tbl  =Table#_get(tbl, 1)
+
+    call Table#_set( Value#_Int[r], 1, Context#_get( ctx, "$ipairs_next" ))
+    call Table#_set( Value#_Int[r], 2, a_tbl )
+    call Table#_set( Value#_Int[r], 3, Value#_litint(0) )
 endfunction
 
 function _init takes nothing returns nothing

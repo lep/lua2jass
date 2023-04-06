@@ -403,6 +403,8 @@ function _rawequal_noalloc takes integer a, integer b returns boolean
 	return _Int[a] == _Int[b]
     elseif type_a == Types#_Foreign and type_b == Types#_Foreign then
 	return _Int[a] == _Int[b] // idk. don't wanna compare jass types
+    elseif type_a == Types#_Nil and type_b == Types#_Nil then
+	return true
     else
 	return false
     endif
@@ -486,9 +488,17 @@ function _gettable takes integer v, integer k returns integer
     local integer tbl
     local integer ls
     if ty == Jass#_integer then
-	return Table#_get( _Int[v], _Int[k] )
+	if Table#_has( _Int[v], _Int[k] ) then
+	    return Table#_get( _Int[v], _Int[k] )
+	else
+	    return _Nil
+	endif
     elseif ty == Jass#_real and _Real[k] == R2I(_Real[k]) then
-	return Table#_get( _Int[v], R2I(_Real[k]) )
+	if Table#_has( _Int[v], R2I(_Real[k]) ) then
+	    return Table#_get( _Int[v], R2I(_Real[k]) )
+	else
+	    return _Nil
+	endif
     else
 	set tbl = _Int2[v]
 	set ls = Table#_get( tbl, _hash(k) )

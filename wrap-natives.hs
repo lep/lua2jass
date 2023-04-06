@@ -222,6 +222,9 @@ compile (Programm ts) = do
             , ("error", "Builtins#_error")
             , ("type", "Builtins#_type")
             , ("select", "Builtins#_select")
+            , ("rawequal", "Builtins#_rawequal")
+            , ("ipairs", "Builtins#_ipairs")
+            , ("$ipairs_next", "Builtins#_ipairs_next")
 
             , ("$enable_trace", "Builtins#_enable_trace")
             , ("$disable_trace", "Builtins#_disable_trace")
