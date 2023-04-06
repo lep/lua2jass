@@ -28,29 +28,6 @@ function _getMetamethod takes integer value, string method returns integer
     endif
 endfunction
 
-// @alloc
-function _integercontext takes integer v returns integer
-    local integer ty = Value#_Type[v]
-    if ty == Jass#_integer then
-	return v
-    elseif ty == Jass#_string then
-	set ty = Jass#_real
-	set v = Value#_litfloat(Value#_parse_number(Value#_String[v]))
-	if Value#_parse_number_error then
-	    return Value#_litnil()
-	endif
-    endif
-
-    if ty == Jass#_real then
-	set ty = R2I(Value#_Real[v]) // casually reusing variable
-	if Value#_Real[v] == ty then
-	    return Value#_litint(ty)
-	endif
-    endif
-
-    return Value#_litnil()
-endfunction
-
 function _Not takes integer ctx, integer ip returns nothing
     local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer v2 = Value#_not(v1)
@@ -61,7 +38,7 @@ function _Complement takes integer ctx, integer ip, integer interpreter returns 
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _integercontext(a)
+    local integer aAsNumber = Value#_integercontext(a)
 
     local integer aMetamethod = _getMetamethod(a, "__bnot")
 
@@ -83,8 +60,8 @@ function _ShiftL takes integer ctx, integer ip, integer interpreter returns noth
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _integercontext(a)
-    local integer bAsNumber = _integercontext(b)
+    local integer aAsNumber = Value#_integercontext(a)
+    local integer bAsNumber = Value#_integercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__shl")
     local integer bMetamethod = _getMetamethod(b, "__shl")
@@ -110,8 +87,8 @@ function _ShiftR takes integer ctx, integer ip, integer interpreter returns noth
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _integercontext(a)
-    local integer bAsNumber = _integercontext(b)
+    local integer aAsNumber = Value#_integercontext(a)
+    local integer bAsNumber = Value#_integercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__shr")
     local integer bMetamethod = _getMetamethod(b, "__shr")
@@ -137,8 +114,8 @@ function _BAnd takes integer ctx, integer ip, integer interpreter returns nothin
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _integercontext(a)
-    local integer bAsNumber = _integercontext(b)
+    local integer aAsNumber = Value#_integercontext(a)
+    local integer bAsNumber = Value#_integercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__band")
     local integer bMetamethod = _getMetamethod(b, "__band")
@@ -164,8 +141,8 @@ function _BOr takes integer ctx, integer ip, integer interpreter returns nothing
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _integercontext(a)
-    local integer bAsNumber = _integercontext(b)
+    local integer aAsNumber = Value#_integercontext(a)
+    local integer bAsNumber = Value#_integercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__bor")
     local integer bMetamethod = _getMetamethod(b, "__bor")
@@ -190,8 +167,8 @@ function _BXor takes integer ctx, integer ip, integer interpreter returns nothin
     local integer b = Table#_get(Context#_tmps[ctx], Ins#_op3[ip])
     local integer ret = Value#_table()
 
-    local integer aAsNumber = _integercontext(a)
-    local integer bAsNumber = _integercontext(b)
+    local integer aAsNumber = Value#_integercontext(a)
+    local integer bAsNumber = Value#_integercontext(b)
 
     local integer aMetamethod = _getMetamethod(a, "__bxor")
     local integer bMetamethod = _getMetamethod(b, "__bxor")

@@ -264,6 +264,27 @@ function _type takes integer tbl, integer ctx, integer interpreter returns nothi
     call Table#_set( Value#_Int[r], 1, ty )
 endfunction
 
+function _select takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer index = Table#_get(tbl, 1)
+
+    if Value#_Type[index] == Jass#_string and Value#_String[index] == "#" then
+	call Table#_set( Value#_Int[r], 1, Value#_litint( Table#_len(tbl) -1 ))
+    else
+	set index = Value#_integercontext( index )
+	if index == Value#_Nil then
+	    call Value#_error_str("bad argument #1 to 'select' (number expected)")
+	    return
+	endif
+	if Value#_Int[index] < 1 then
+	    call Value#_error_str("bad argument #1 to 'select' (index out of range)")
+	    return
+	endif
+	call Table#_getlist( Value#_Int[r], tbl, 1 + Value#_Int[index] )
+    endif
+    
+endfunction
+
 function _init takes nothing returns nothing
     set _ascii_i[966] = 8
     set _ascii_i[1110] = 9

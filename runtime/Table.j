@@ -62,3 +62,15 @@ function _getlist takes integer target, integer source, integer offset returns n
 	set k = k +1
     endloop
 endfunction
+
+function _len takes integer tbl returns integer
+    local integer k = 1
+    loop
+	if Table#_has( tbl, k ) then
+	    set k = k +1
+	else
+	    return k - 1
+	endif
+    endloop
+    return 0
+endfunction

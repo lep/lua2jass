@@ -221,6 +221,7 @@ compile (Programm ts) = do
             , ("xpcall", "Builtins#_xpcall")
             , ("error", "Builtins#_error")
             , ("type", "Builtins#_type")
+            , ("select", "Builtins#_select")
 
             , ("$enable_trace", "Builtins#_enable_trace")
             , ("$disable_trace", "Builtins#_disable_trace")
@@ -248,7 +249,7 @@ compile (Programm ts) = do
             , ("EnumDestructablesInRect", "Builtin/Boolexpr#_EnumDestructablesInRect")
             , ("EnumItemsInRect", "Builtin/Boolexpr#_EnumItemsInRect")
             , ("Filter", "Builtin/Boolexpr#_Filter")
-            , ("Condition", "Builtin/Boolexpr#_Condition")
+            , ("Condition", "Builtin/Boolexpr#_Filter")
             , ("And", "Builtin/Boolexpr#_And")
             , ("Or", "Builtin/Boolexpr#_Or")
             , ("Not", "Builtin/Boolexpr#_Not")

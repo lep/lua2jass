@@ -512,17 +512,8 @@ function _len takes integer v returns integer
     if ty == Jass#_string then
 	return Value#_litint(StringLength(_String[v]))
     elseif ty == Types#_Table then
+	return _litint( Table#_len( _Int[v] ) )
 	set tbl = _Int[v]
-	loop
-	    //call Print#_print("  - checking key k = "+ I2S(k))
-	    if Table#_has( tbl, k ) then
-		//call Print#_print("  - v = "+_tostring(Table#_get(tbl, k)))
-		set k = k +1
-	    else
-		//call Print#_print("  - table does not have key, returning k = "+I2S(k))
-		return _litint(k)
-	    endif
-	endloop
     endif
     return Value#_litint(0) // TODO
 endfunction
@@ -983,6 +974,28 @@ function _numbercontext takes integer v returns integer
 	
 endfunction
 
+// @alloc
+function _integercontext takes integer v returns integer
+    local integer ty = Value#_Type[v]
+    if ty == Jass#_integer then
+	return v
+    elseif ty == Jass#_string then
+	set ty = Jass#_real
+	set v = _litfloat(_parse_number(_String[v]))
+	if Value#_parse_number_error then
+	    return _litnil()
+	endif
+    endif
+
+    if ty == Jass#_real then
+	set ty = R2I(_Real[v]) // casually reusing variable
+	if _Real[v] == ty then
+	    return _litint(ty)
+	endif
+    endif
+
+    return _litnil()
+endfunction
 
 function _mark_used takes integer value returns nothing
     set _mark[value] = GC#_inqueue_flag
