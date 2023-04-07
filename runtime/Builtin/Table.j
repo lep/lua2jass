@@ -250,12 +250,32 @@ function _move takes integer tbl, integer ctx, integer interpreter returns nothi
     call Table#_free(tmp)
 endfunction
 
+function _pack takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get( tbl, 0 )
+    local integer tbl_v = Value#_table()
+    local integer i = 1
+
+    loop
+        if Table#_has( tbl, i ) then
+            call Table#_set( Value#_Int[tbl_v], i, Table#_get( tbl, i ) )
+        else
+            exitwhen true
+        endif
+    
+        set i = i +1
+    endloop
+
+    call Value#_settable(tbl_v, Value#_litstring("n"), Value#_litint(i))
+    call Table#_set( Value#_Int[r], 1, tbl_v )
+endfunction
+
 function _register takes integer ctx returns nothing
     local integer table_table = Value#_table()
     call Value#_settable( table_table, Value#_litstring("sort"), Context#_get(ctx, "$table.sort") )
     call Value#_settable( table_table, Value#_litstring("concat"), Context#_get(ctx, "$table.concat") )
     call Value#_settable( table_table, Value#_litstring("insert"), Context#_get(ctx, "$table.insert") )
     call Value#_settable( table_table, Value#_litstring("move"), Context#_get(ctx, "$table.move") )
+    call Value#_settable( table_table, Value#_litstring("pack"), Context#_get(ctx, "$table.pack") )
 
     call Context#_set( ctx, "table", table_table )
 endfunction
