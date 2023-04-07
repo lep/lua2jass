@@ -241,6 +241,8 @@ compile (Programm ts) = do
             , ("$math.max", "Builtin/Math#_max")
             , ("$math.log", "Builtin/Math#_log")
 
+            , ("$table.sort", "Builtin/Table#_sort")
+
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")
             , ("TimerStart", "Builtin/Timer#_TimerStart")
@@ -284,6 +286,7 @@ compile (Programm ts) = do
         hPutStrLn fh "// REQUIRES Builtins"
         hPutStrLn fh "// REQUIRES Builtin/Coroutine Builtin/Trigger"
         hPutStrLn fh "// REQUIRES Builtin/Timer Builtin/Boolexpr Builtin/Math"
+        hPutStrLn fh "// REQUIRES Builtin/Table"
         hPutStrLn fh "// REQUIRES Value Context Natives"
         Builder.hPutBuilder fh $ pretty dispatchAst
 

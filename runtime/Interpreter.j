@@ -1,6 +1,6 @@
 // scope Interpreter
 // REQUIRES Value Ins Context Table Print Dispatch Error
-// REQUIRES Builtin/Coroutine Builtin/Math
+// REQUIRES Builtin/Coroutine Builtin/Math Builtin/Table
 
 globals
     #include "alloc-globals.j"
@@ -1056,6 +1056,7 @@ function _debug_start_main takes nothing returns nothing
     call Dispatch#_register(ctx)
     call Builtin/Coroutine#_register(ctx)
     call Builtin/Math#_register(ctx)
+    call Builtin/Table#_register(ctx)
 
     loop
 	exitwhen not _step(interpreter)

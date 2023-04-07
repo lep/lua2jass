@@ -7,6 +7,7 @@ RUNTIME += runtime/Builtin/Trigger.j
 RUNTIME += runtime/Builtin/Timer.j
 RUNTIME += runtime/Builtin/Boolexpr.j
 RUNTIME += runtime/Builtin/Math.j
+RUNTIME += runtime/Builtin/Table.j
 
 AUTO := auto/Auto.j auto/Natives.j auto/Jass.j auto/Dispatch.j
 
