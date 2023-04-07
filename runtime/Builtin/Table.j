@@ -72,9 +72,8 @@ endfunction
 // taken from wikipedia
 function _sort takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer r = Table#_get( tbl, 0 )
-    local integer tbl_a = Table#_get( tbl, 1 )
+    local integer list = Table#_get( tbl, 1 )
 
-    local integer array heap
     local integer i = 1
     local integer count = 0
     local integer end
@@ -84,8 +83,8 @@ function _sort takes integer tbl, integer ctx, integer interpreter returns nothi
 
 
     loop
-        if Table#_has( Value#_Int[tbl_a], i ) then
-            set _heap[count] = Table#_get( Value#_Int[tbl_a], i )
+        if Table#_has( Value#_Int[list], i ) then
+            set _heap[count] = Table#_get( Value#_Int[list], i )
         else
             exitwhen true
         endif
@@ -105,15 +104,71 @@ function _sort takes integer tbl, integer ctx, integer interpreter returns nothi
     set i = 0
     loop
     exitwhen i == count
-        call Table#_set( Value#_Int[tbl_a], i+1, _heap[i] )
+        call Table#_set( Value#_Int[list], i+1, _heap[i] )
         set i = i +1
     endloop
 
+    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+endfunction
+
+function _concat takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get( tbl, 0 )
+    local integer list = Table#_get( tbl, 1 )
+    local integer sep = Table#_get( tbl, 2 )
+    local integer i = Table#_get( tbl, 3 )
+    local integer j = Table#_get( tbl, 4 )
+
+    local string sep_s = ""
+    local string r_s = ""
+
+
+    local boolean not_first = false
+
+    if sep != 0 then
+        set sep_s = Value#_tostring_concat(sep)
+    endif
+
+    if i == 0 then
+        set i = 1
+    else
+        set i = Value#_integercontext(i)
+        set i = Value#_Int[i]
+    endif
+
+    if j == 0 then
+        set j = Table#_len( Value#_Int[list] )
+    else
+        set j = Value#_integercontext(j)
+        set j = Value#_Int[j]
+    endif
+
+    if i > j then
+        call Table#_set( Value#_Int[r], 1, Value#_litstring(r_s) )
+        return
+    endif
+
+    loop
+        exitwhen i > j
+        if Table#_has( Value#_Int[list], i ) then
+            if not_first then
+                set r_s = r_s + sep_s
+            endif
+            set r_s = r_s + Value#_tostring_concat(Table#_get(Value#_Int[list], i))
+        else
+            call Value#_error_str("invalid value (nil) at index "+I2S(i)+" in table for 'concat'")
+            return
+        endif
+        set not_first = true
+        set i = i +1
+    endloop
+
+    call Table#_set( Value#_Int[r], 1, Value#_litstring(r_s) )
 endfunction
 
 function _register takes integer ctx returns nothing
     local integer table_table = Value#_table()
     call Value#_settable( table_table, Value#_litstring("sort"), Context#_get(ctx, "$table.sort") )
+    call Value#_settable( table_table, Value#_litstring("concat"), Context#_get(ctx, "$table.concat") )
 
     call Context#_set( ctx, "table", table_table )
 endfunction

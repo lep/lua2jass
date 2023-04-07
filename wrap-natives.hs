@@ -242,6 +242,7 @@ compile (Programm ts) = do
             , ("$math.log", "Builtin/Math#_log")
 
             , ("$table.sort", "Builtin/Table#_sort")
+            , ("$table.concat", "Builtin/Table#_concat")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")
