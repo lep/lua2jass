@@ -207,11 +207,55 @@ function _insert takes integer tbl, integer ctx, integer interpreter returns not
     call Table#_set( Value#_Int[r], 1, Value#_litnil() )
 endfunction
 
+function _move takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get( tbl, 0 )
+    local integer a1 = Table#_get( tbl, 1 )
+    local integer f = Table#_get( tbl, 2 )
+    local integer e = Table#_get( tbl, 3 )
+    local integer t = Table#_get( tbl, 4 )
+    local integer a2 = Table#_get( tbl, 5 )
+
+    local integer tmp = Table#_alloc()
+    local integer i
+    
+    if a2 == 0 then
+        set a2 = a1
+    endif
+
+    set f = Value#_Int[Value#_integercontext(f)]
+    set e = Value#_Int[Value#_integercontext(e)]
+    set t = Value#_Int[Value#_integercontext(t)]
+    set i = f
+
+    // copy a1[f], a1[f+1] .. a1[e] (or until first nil) to tmp table
+    loop
+    exitwhen i > e
+        if Table#_has(Value#_Int[a1], i ) then
+            call Table#_set( tmp, i, Table#_get(Value#_Int[a1], i))
+        else
+            exitwhen true
+        endif
+        set i = i +1
+    endloop
+
+    set i = i -1
+    loop
+    exitwhen i < f
+        call Table#_set( Value#_Int[a2], t+i-f, Table#_get(tmp, i))
+        set i = i -1
+    endloop
+
+    call Table#_set( Value#_Int[r], 1, a2 )
+
+    call Table#_free(tmp)
+endfunction
+
 function _register takes integer ctx returns nothing
     local integer table_table = Value#_table()
     call Value#_settable( table_table, Value#_litstring("sort"), Context#_get(ctx, "$table.sort") )
     call Value#_settable( table_table, Value#_litstring("concat"), Context#_get(ctx, "$table.concat") )
     call Value#_settable( table_table, Value#_litstring("insert"), Context#_get(ctx, "$table.insert") )
+    call Value#_settable( table_table, Value#_litstring("move"), Context#_get(ctx, "$table.move") )
 
     call Context#_set( ctx, "table", table_table )
 endfunction
