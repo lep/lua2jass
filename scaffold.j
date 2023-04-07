@@ -55,7 +55,7 @@ function InitCustomTriggers takes nothing returns nothing
     call lua_Wrap_init()
     call lua_Interpreter_init()
     call lua_GC_init()
-    call lua_Builtins_init()
+    call lua_Helper_init()
 
     call lua_Builtin__Trigger_init()
     call lua_Builtin__Timer_init()

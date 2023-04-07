@@ -1,5 +1,5 @@
 // scope Value
-// REQUIRES Table Types List Call
+// REQUIRES Table Types List Call Helper
 
 globals
 
@@ -287,6 +287,14 @@ function _lt_numeric_noalloc takes integer a, integer b returns boolean
     else
 	call _error_str("bad comparison (<)")
 	return false
+    endif
+endfunction
+
+function _lt_numeric_or_string_noalloc takes integer a, integer b returns boolean
+    if _Type[a] == Jass#_string and _Type[b] == Jass#_string then
+	return Helper#_lt_string(_String[a], _String[b])
+    else
+	return _lt_numeric_noalloc(a, b)
     endif
 endfunction
 

@@ -1,5 +1,5 @@
 // scope Interpreter
-// REQUIRES Value Ins Context Table Print Dispatch Error
+// REQUIRES Value Ins Context Table Print Dispatch Error Helper
 // REQUIRES Builtin/Coroutine Builtin/Math Builtin/Table
 
 globals
@@ -426,27 +426,6 @@ function _NEQ takes integer ctx, integer ip, integer interpreter returns nothing
 endfunction
 
 
-function _lt_string takes string a, string b returns boolean
-    local integer i = 0
-    local integer l1 = StringLength(a)
-    local integer l2 = StringLength(b)
-
-    local string c
-    local string d
-
-    loop
-    exitwhen i > l1 or i > l2
-	set c = SubString(a, i, i+1)
-	set d = SubString(b, i, i+1)
-
-	if c != d then
-	    return Builtins#_Char2Ascii(c) < Builtins#_Char2Ascii(d)
-	endif
-	
-	set i = i +1
-    endloop
-    return false
-endfunction
 
 function _lt_value takes integer v1, integer v2, integer interpreter returns boolean
     local integer type1 = Value#_Type[v1]
@@ -458,7 +437,7 @@ function _lt_value takes integer v1, integer v2, integer interpreter returns boo
     local integer ret = Value#_table() // lol GC
 
     if type1 == Jass#_string and type2 == Jass#_string then
-	return _lt_string(Value#_String[v1], Value#_String[v2] )
+	return Helper#_lt_string(Value#_String[v1], Value#_String[v2] )
     elseif (type1 == Jass#_integer or type1 == Jass#_real) and (type2 == Jass#_integer or type2 == Jass#_real) then
 	return Value#_lt_numeric_noalloc(v1, v2)
     elseif aMetamethod != Value#_Nil then
@@ -484,7 +463,7 @@ function _lte_value takes integer v1, integer v2, integer interpreter returns bo
     local integer ret = Value#_table() // lol GC
     
     if type1 == Jass#_string and type2 == Jass#_string then
-	return not _lt_string(Value#_String[v2], Value#_String[v1])
+	return not Helper#_lt_string(Value#_String[v2], Value#_String[v1])
     elseif (type1 == Jass#_integer or type1 == Jass#_real) and (type2 == Jass#_integer or type2 == Jass#_real) then
 	return Value#_lte_numeric_noalloc(v1, v2)
     elseif aMetamethod != Value#_Nil then
