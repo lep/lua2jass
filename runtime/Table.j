@@ -9,7 +9,8 @@ globals
 
 
     // indexed by list
-    // for GC purposes
+    // for GC (and other) purposes
+    integer array _key
     integer array _val
 endglobals
 
@@ -23,6 +24,7 @@ function _set takes integer tbl, integer reg, integer val returns nothing
     else
         set ls = List#_cons(_head[tbl])
         set _val[ls] = val
+	set _key[ls] = reg
         set _head[tbl] = ls
         call SaveInteger(_tbl, tbl, reg, ls)
     endif
@@ -34,6 +36,27 @@ endfunction
 
 function _has takes integer tbl, integer reg returns boolean
     return HaveSavedInteger(_tbl, tbl, reg)
+endfunction
+
+function _remove takes integer tbl, integer reg returns nothing
+    local integer ls = LoadInteger(_tbl, tbl, reg)
+    local integer head = _head[tbl]
+
+    if ls == 0 then
+	return
+    endif
+
+    if head == ls then
+	set _head[tbl] = List#_next[head]
+    else
+	loop
+	exitwhen List#_next[head] == ls
+	    set head = List#_next[head]
+	endloop
+	set List#_next[head] = List#_next[ls]
+    endif
+
+    call RemoveSavedInteger(_tbl, tbl, reg)
 endfunction
 
 function _append takes integer target, integer source, integer offset returns nothing

@@ -250,6 +250,37 @@ function _move takes integer tbl, integer ctx, integer interpreter returns nothi
     call Table#_free(tmp)
 endfunction
 
+function _remove takes integer tbl, integer ctx, integer interpreter returns nothing 
+    local integer r = Table#_get( tbl, 0 )
+    local integer list = Table#_get( tbl, 1 )
+    local integer pos = Table#_get( tbl, 2 )
+    local integer len = Table#_len( Value#_Int[list] )
+    local integer i
+
+    if pos != 0 then
+        set pos = Value#_Int[Value#_integercontext(pos)]
+    else
+        set pos = len
+    endif
+
+    if 1 <= pos and pos <= len then
+        call Table#_set( Value#_Int[r], 1, Table#_get(Value#_Int[list], pos) )
+
+        loop
+        exitwhen pos >= len
+            call Table#_set( Value#_Int[list], pos, Table#_get(Value#_Int[list], pos+1))
+            set pos = pos +1
+        endloop
+        //call Table#_set( Value#_Int[list], len, Value#_litnil() )
+        call Table#_remove( Value#_Int[list], len )
+    elseif pos == 0 and len == 0 then
+        call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+    else
+        call Value#_error_str("bad argument #1 to 'remove' (position out of bounds)")
+        return
+    endif
+endfunction
+
 function _pack takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer r = Table#_get( tbl, 0 )
     local integer tbl_v = Value#_table()
@@ -299,6 +330,7 @@ function _register takes integer ctx returns nothing
     call Value#_settable( table_table, Value#_litstring("concat"), Context#_get(ctx, "$table.concat") )
     call Value#_settable( table_table, Value#_litstring("insert"), Context#_get(ctx, "$table.insert") )
     call Value#_settable( table_table, Value#_litstring("move"), Context#_get(ctx, "$table.move") )
+    call Value#_settable( table_table, Value#_litstring("remove"), Context#_get(ctx, "$table.remove") )
     call Value#_settable( table_table, Value#_litstring("pack"), Context#_get(ctx, "$table.pack") )
     call Value#_settable( table_table, Value#_litstring("unpack"), Context#_get(ctx, "$table.unpack") )
 
