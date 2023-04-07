@@ -246,6 +246,7 @@ compile (Programm ts) = do
             , ("$table.insert", "Builtin/Table#_insert")
             , ("$table.move", "Builtin/Table#_move")
             , ("$table.pack", "Builtin/Table#_pack")
+            , ("$table.unpack", "Builtin/Table#_unpack")
 
             , ("CreateTimer", "Builtin/Timer#_CreateTimer")
             , ("DestroyTimer", "Builtin/Timer#_DestroyTimer")

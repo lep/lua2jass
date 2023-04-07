@@ -269,6 +269,30 @@ function _pack takes integer tbl, integer ctx, integer interpreter returns nothi
     call Table#_set( Value#_Int[r], 1, tbl_v )
 endfunction
 
+function _unpack takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get( tbl, 0 )
+    local integer tbl_a = Table#_get( tbl, 1 )
+    local integer i = Table#_get( tbl, 2 )
+    local integer j = Table#_get( tbl, 3 )
+
+    if i != 0 then
+        set i = Value#_Int[Value#_integercontext(i)]
+    else
+        set i = 1
+    endif
+    if j != 0 then
+        set j = Value#_Int[Value#_integercontext(j)]
+    else
+        set j = Table#_len( Value#_Int[tbl_a] )
+    endif
+
+    loop
+    exitwhen i > j
+        call Table#_set( Value#_Int[r], i, Table#_get(Value#_Int[tbl_a], i) )
+        set i = i + 1
+    endloop
+endfunction
+
 function _register takes integer ctx returns nothing
     local integer table_table = Value#_table()
     call Value#_settable( table_table, Value#_litstring("sort"), Context#_get(ctx, "$table.sort") )
@@ -276,6 +300,7 @@ function _register takes integer ctx returns nothing
     call Value#_settable( table_table, Value#_litstring("insert"), Context#_get(ctx, "$table.insert") )
     call Value#_settable( table_table, Value#_litstring("move"), Context#_get(ctx, "$table.move") )
     call Value#_settable( table_table, Value#_litstring("pack"), Context#_get(ctx, "$table.pack") )
+    call Value#_settable( table_table, Value#_litstring("unpack"), Context#_get(ctx, "$table.unpack") )
 
     call Context#_set( ctx, "table", table_table )
 endfunction
