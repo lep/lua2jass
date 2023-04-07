@@ -165,10 +165,53 @@ function _concat takes integer tbl, integer ctx, integer interpreter returns not
     call Table#_set( Value#_Int[r], 1, Value#_litstring(r_s) )
 endfunction
 
+function _insert takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get( tbl, 0 )
+    local integer list = Table#_get( tbl, 1 )
+    local integer pos = Table#_get( tbl, 2 )
+    local integer value = Table#_get( tbl, 3 )
+
+    local integer len = Table#_len(Value#_Int[list])
+
+    local integer i
+
+    if value == 0 then
+        set value = pos
+        set pos = len+1
+    else
+        set pos = Value#_integercontext(pos)
+        set pos = Value#_Int[pos]
+    endif
+
+
+    if pos > len+1 then
+        call Value#_error_str("bad argument #2 to 'insert' (position out of bounds)")
+        return
+    endif
+
+    if len == 0 then
+        if pos != 1 then
+            call Value#_error_str("bad argument #2 to 'insert' (position out of bounds)")
+            return
+        endif
+    elseif pos != len+1 then
+        set i = len+1
+        loop
+        exitwhen i == pos
+            call Table#_set( Value#_Int[list], i, Table#_get(Value#_Int[list], i-1))
+            set i = i -1
+        endloop
+    endif
+
+    call Table#_set(Value#_Int[list], pos, value )
+    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+endfunction
+
 function _register takes integer ctx returns nothing
     local integer table_table = Value#_table()
     call Value#_settable( table_table, Value#_litstring("sort"), Context#_get(ctx, "$table.sort") )
     call Value#_settable( table_table, Value#_litstring("concat"), Context#_get(ctx, "$table.concat") )
+    call Value#_settable( table_table, Value#_litstring("insert"), Context#_get(ctx, "$table.insert") )
 
     call Context#_set( ctx, "table", table_table )
 endfunction
