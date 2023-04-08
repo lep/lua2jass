@@ -1,5 +1,5 @@
 // scope Builtin/Coroutine
-// REQUIRES Print Table Context Value
+// REQUIRES Print Table Context Value List StringTable
 
 globals
     integer array _ctx2value
@@ -118,12 +118,52 @@ function _resume takes integer tbl, integer ctx, integer interpreter returns not
     endif
 endfunction
 
+function _isyieldable takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get( tbl, 0 )
+    local integer head = Interpreter#_stack_top[interpreter] // aka ctx?
+
+    loop
+        exitwhen head == 0
+        exitwhen Context#_ret_behaviour[Interpreter#_ctx[head]] == Interpreter#_CoroutineYield
+
+        set head = List#_next[head]
+    endloop
+
+    call Table#_set( Value#_Int[r], 1, Value#_litbool(head != 0) )
+endfunction
+
+function _status_fn takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get( tbl, 0 )
+    local integer co = Table#_get( tbl, 1 )
+
+    local integer head = Interpreter#_stack_top[interpreter] // aka ctx?
+
+    loop
+        exitwhen head == 0
+        exitwhen Context#_ret_behaviour[Interpreter#_ctx[head]] == Interpreter#_CoroutineYield
+
+        set head = List#_next[head]
+    endloop
+
+    if Interpreter#_ctx[head] == Interpreter#_ctx[_base_frame[co]] then
+        call Table#_set( Value#_Int[r], 1, Value#_litstring("running") )
+    else
+        if _status[co] == _StatusSuspended then
+            call Table#_set( Value#_Int[r], 1, Value#_litstring("suspended") )
+        else
+            call Table#_set( Value#_Int[r], 1, Value#_litstring("dead") )
+        endif
+    endif
+endfunction
+
 
 function _register takes integer ctx returns nothing
     local integer coroutine_table = Value#_table()
     call Value#_settable( coroutine_table, Value#_litstring("create"), Context#_get(ctx, "$coroutine.create") )
     call Value#_settable( coroutine_table, Value#_litstring("yield"), Context#_get(ctx, "$coroutine.yield") )
     call Value#_settable( coroutine_table, Value#_litstring("resume"), Context#_get(ctx, "$coroutine.resume") )
+    call Value#_settable( coroutine_table, Value#_litstring("status"), Context#_get(ctx, "$coroutine.status") )
+    call Value#_settable( coroutine_table, Value#_litstring("isyieldable"), Context#_get(ctx, "$coroutine.isyieldable") )
 
     call Context#_set( ctx, "coroutine", coroutine_table )
 endfunction

@@ -209,6 +209,8 @@ compile (Programm ts) = do
             [ ("$coroutine.create", "Builtin/Coroutine#_create")
             , ("$coroutine.yield", "Builtin/Coroutine#_yield")
             , ("$coroutine.resume", "Builtin/Coroutine#_resume")
+            , ("$coroutine.status", "Builtin/Coroutine#_status_fn")
+            , ("$coroutine.isyieldable", "Builtin/Coroutine#_isyieldable")
 
             , ("setmetatable", "Builtins#_setmetatable")
             , ("getmetatable", "Builtins#_getmetatable")
