@@ -90,6 +90,7 @@ function _litnil takes nothing returns integer
 endfunction
 
 
+
 // @alloc
 function _neg takes integer v returns integer
     local integer new = _new()
@@ -456,12 +457,12 @@ function _settable takes integer t, integer k, integer v returns nothing
     //call Print#_print("_settable("+I2S(t)+","+I2S(k)+","+I2S(v)+")")
 
     if _Type[t] != Types#_Table then
-	call Print#_error("Expected table but got "+I2S(_Type[t]))
+	call _error_str("Expected table but got "+I2S(_Type[t]))
         return
     endif
 
     if _Type[k] == Types#_Nil then
-	call Print#_error("table index is nil")
+	call _error_str("table index is nil")
         return
     endif
 
@@ -1013,6 +1014,16 @@ function _integercontext takes integer v returns integer
     endif
 
     return _litnil()
+endfunction
+
+function _getMetamethod takes integer value, string method returns integer
+    if _Type[value] != Types#_Table then
+	return _litnil()
+    elseif _Int3[value] == 0 then
+	return _litnil()
+    else
+	return _gettable( _Int3[value], _litstring(method) )
+    endif
 endfunction
 
 function _mark_used takes integer value returns nothing

@@ -18,16 +18,6 @@ globals
 endglobals
 #include "alloc.j"
 
-function _getMetamethod takes integer value, string method returns integer
-    if Value#_Type[value] != Types#_Table then
-	return Value#_litnil()
-    elseif Value#_Int3[value] == 0 then
-	return Value#_litnil()
-    else
-	return Value#_gettable( Value#_Int3[value], Value#_litstring(method) )
-    endif
-endfunction
-
 function _Not takes integer ctx, integer ip returns nothing
     local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
     local integer v2 = Value#_not(v1)
@@ -40,7 +30,7 @@ function _Complement takes integer ctx, integer ip, integer interpreter returns 
 
     local integer aAsNumber = Value#_integercontext(a)
 
-    local integer aMetamethod = _getMetamethod(a, "__bnot")
+    local integer aMetamethod = Value#_getMetamethod(a, "__bnot")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call1( aMetamethod, a, ret, interpreter )
@@ -63,8 +53,8 @@ function _ShiftL takes integer ctx, integer ip, integer interpreter returns noth
     local integer aAsNumber = Value#_integercontext(a)
     local integer bAsNumber = Value#_integercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__shl")
-    local integer bMetamethod = _getMetamethod(b, "__shl")
+    local integer aMetamethod = Value#_getMetamethod(a, "__shl")
+    local integer bMetamethod = Value#_getMetamethod(b, "__shl")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -90,8 +80,8 @@ function _ShiftR takes integer ctx, integer ip, integer interpreter returns noth
     local integer aAsNumber = Value#_integercontext(a)
     local integer bAsNumber = Value#_integercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__shr")
-    local integer bMetamethod = _getMetamethod(b, "__shr")
+    local integer aMetamethod = Value#_getMetamethod(a, "__shr")
+    local integer bMetamethod = Value#_getMetamethod(b, "__shr")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -117,8 +107,8 @@ function _BAnd takes integer ctx, integer ip, integer interpreter returns nothin
     local integer aAsNumber = Value#_integercontext(a)
     local integer bAsNumber = Value#_integercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__band")
-    local integer bMetamethod = _getMetamethod(b, "__band")
+    local integer aMetamethod = Value#_getMetamethod(a, "__band")
+    local integer bMetamethod = Value#_getMetamethod(b, "__band")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -144,8 +134,8 @@ function _BOr takes integer ctx, integer ip, integer interpreter returns nothing
     local integer aAsNumber = Value#_integercontext(a)
     local integer bAsNumber = Value#_integercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__bor")
-    local integer bMetamethod = _getMetamethod(b, "__bor")
+    local integer aMetamethod = Value#_getMetamethod(a, "__bor")
+    local integer bMetamethod = Value#_getMetamethod(b, "__bor")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -170,8 +160,8 @@ function _BXor takes integer ctx, integer ip, integer interpreter returns nothin
     local integer aAsNumber = Value#_integercontext(a)
     local integer bAsNumber = Value#_integercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__bxor")
-    local integer bMetamethod = _getMetamethod(b, "__bxor")
+    local integer aMetamethod = Value#_getMetamethod(a, "__bxor")
+    local integer bMetamethod = Value#_getMetamethod(b, "__bxor")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -194,7 +184,7 @@ function _Neg takes integer ctx, integer ip, integer interpreter returns nothing
 
     local integer aAsNumber = Value#_numbercontext(a)
 
-    local integer aMetamethod = _getMetamethod(a, "__unm")
+    local integer aMetamethod = Value#_getMetamethod(a, "__unm")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call1( aMetamethod, a, ret, interpreter )
@@ -216,8 +206,8 @@ function _Add takes integer ctx, integer ip, integer interpreter returns nothing
     local integer aAsNumber = Value#_numbercontext(a)
     local integer bAsNumber = Value#_numbercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__add")
-    local integer bMetamethod = _getMetamethod(b, "__add")
+    local integer aMetamethod = Value#_getMetamethod(a, "__add")
+    local integer bMetamethod = Value#_getMetamethod(b, "__add")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -242,8 +232,8 @@ function _Sub takes integer ctx, integer ip, integer interpreter returns nothing
     local integer aAsNumber = Value#_numbercontext(a)
     local integer bAsNumber = Value#_numbercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__sub")
-    local integer bMetamethod = _getMetamethod(b, "__sub")
+    local integer aMetamethod = Value#_getMetamethod(a, "__sub")
+    local integer bMetamethod = Value#_getMetamethod(b, "__sub")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -268,8 +258,8 @@ function _Mul takes integer ctx, integer ip, integer interpreter returns nothing
     local integer aAsNumber = Value#_numbercontext(a)
     local integer bAsNumber = Value#_numbercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__mul")
-    local integer bMetamethod = _getMetamethod(b, "__mul")
+    local integer aMetamethod = Value#_getMetamethod(a, "__mul")
+    local integer bMetamethod = Value#_getMetamethod(b, "__mul")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -294,8 +284,8 @@ function _Div takes integer ctx, integer ip, integer interpreter returns nothing
     local integer aAsNumber = Value#_numbercontext(a)
     local integer bAsNumber = Value#_numbercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__div")
-    local integer bMetamethod = _getMetamethod(b, "__div")
+    local integer aMetamethod = Value#_getMetamethod(a, "__div")
+    local integer bMetamethod = Value#_getMetamethod(b, "__div")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -320,8 +310,8 @@ function _IDiv takes integer ctx, integer ip, integer interpreter returns nothin
     local integer aAsNumber = Value#_numbercontext(a)
     local integer bAsNumber = Value#_numbercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__idiv")
-    local integer bMetamethod = _getMetamethod(b, "__idiv")
+    local integer aMetamethod = Value#_getMetamethod(a, "__idiv")
+    local integer bMetamethod = Value#_getMetamethod(b, "__idiv")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -346,8 +336,8 @@ function _Mod takes integer ctx, integer ip, integer interpreter returns nothing
     local integer aAsNumber = Value#_numbercontext(a)
     local integer bAsNumber = Value#_numbercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__mod")
-    local integer bMetamethod = _getMetamethod(b, "__mod")
+    local integer aMetamethod = Value#_getMetamethod(a, "__mod")
+    local integer bMetamethod = Value#_getMetamethod(b, "__mod")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -372,8 +362,8 @@ function _Exp takes integer ctx, integer ip, integer interpreter returns nothing
     local integer aAsNumber = Value#_numbercontext(a)
     local integer bAsNumber = Value#_numbercontext(b)
 
-    local integer aMetamethod = _getMetamethod(a, "__exp")
-    local integer bMetamethod = _getMetamethod(b, "__exp")
+    local integer aMetamethod = Value#_getMetamethod(a, "__exp")
+    local integer bMetamethod = Value#_getMetamethod(b, "__exp")
 
     if aMetamethod != Value#_Nil then
 	call Call#_call2( aMetamethod, a, b, ret, interpreter )
@@ -400,8 +390,8 @@ function _eq_value takes integer ctx, integer ip, integer interpreter returns bo
 
     local boolean eq = Value#_rawequal_noalloc(a, b)
 
-    local integer aMetamethod = _getMetamethod(a, "__eq")
-    local integer bMetamethod = _getMetamethod(b, "__eq")
+    local integer aMetamethod = Value#_getMetamethod(a, "__eq")
+    local integer bMetamethod = Value#_getMetamethod(b, "__eq")
 
     if eq then
 	return eq
@@ -431,8 +421,8 @@ function _lt_value takes integer v1, integer v2, integer interpreter returns boo
     local integer type1 = Value#_Type[v1]
     local integer type2 = Value#_Type[v2]
 
-    local integer aMetamethod = _getMetamethod(v1, "__lt")
-    local integer bMetamethod = _getMetamethod(v2, "__lt")
+    local integer aMetamethod = Value#_getMetamethod(v1, "__lt")
+    local integer bMetamethod = Value#_getMetamethod(v2, "__lt")
 
     local integer ret = Value#_table() // lol GC
 
@@ -457,8 +447,8 @@ function _lte_value takes integer v1, integer v2, integer interpreter returns bo
     local integer type1 = Value#_Type[v1]
     local integer type2 = Value#_Type[v2]
 
-    local integer aMetamethod = _getMetamethod(v1, "__le")
-    local integer bMetamethod = _getMetamethod(v2, "__le")
+    local integer aMetamethod = Value#_getMetamethod(v1, "__le")
+    local integer bMetamethod = Value#_getMetamethod(v2, "__le")
 
     local integer ret = Value#_table() // lol GC
     
@@ -684,7 +674,7 @@ endfunction
 function _Len takes integer ctx, integer ip, integer interpreter returns nothing
     local integer r = Ins#_op1[ip]
     local integer a = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
-    local integer metamethod = _getMetamethod(a, "__len")
+    local integer metamethod = Value#_getMetamethod(a, "__len")
     local integer ty = Value#_Type[a]
     local integer ret = Value#_table()
 
@@ -810,7 +800,7 @@ function _Ret takes integer ctx, integer interpreter returns boolean
 endfunction
 
 function _gettable_rec takes integer tbl, integer key, integer interpreter returns integer
-    local integer metamethod = _getMetamethod(tbl, "__index")
+    local integer metamethod = Value#_getMetamethod(tbl, "__index")
     local integer val = Value#_gettable( tbl, key )
     local integer ret = Value#_table()
 
@@ -838,7 +828,7 @@ function _GetTable takes integer ctx, integer ip, integer interpreter returns no
 endfunction
 
 function _settable_rec takes integer tbl, integer key, integer val, integer interpreter returns nothing
-    local integer metamethod = _getMetamethod(tbl, "__index")
+    local integer metamethod = Value#_getMetamethod(tbl, "__index")
     local integer ret = Value#_table()
 
     if metamethod != Value#_Nil then
@@ -869,8 +859,8 @@ function _Concat takes integer ctx, integer ip, integer interpreter returns noth
     local integer a = Table#_get( Context#_tmps[ctx], Ins#_op2[ip] )
     local integer b = Table#_get( Context#_tmps[ctx], Ins#_op3[ip] )
 
-    local integer aMetamethod = _getMetamethod(a, "__concat")
-    local integer bMetamethod = _getMetamethod(b, "__concat")
+    local integer aMetamethod = Value#_getMetamethod(a, "__concat")
+    local integer bMetamethod = Value#_getMetamethod(b, "__concat")
 
     local integer ret = Value#_table()
 

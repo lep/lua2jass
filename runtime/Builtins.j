@@ -291,3 +291,109 @@ function _ipairs takes integer tbl, integer ctx, integer interpreter returns not
     call Table#_set( Value#_Int[r], 3, Value#_litint(0) )
 endfunction
 
+function _next_hashmap takes integer tbl, integer index, integer r returns nothing
+    local integer table_ls
+    local integer hashtable_ls
+
+    if index != Value#_Nil then
+	set table_ls = Table#_internal_get_list_entry(Value#_Int2[tbl], Value#_hash(index) )
+	if table_ls == 0 then
+	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	    call Value#_error_str("invalid key to 'next'")
+	    return
+	endif
+	set hashtable_ls = Table#_val[table_ls] // TODO: hashtable_ls == 0, maybe?
+	set hashtable_ls = List#_next[hashtable_ls]
+	if hashtable_ls == 0 then
+	    set table_ls = List#_next[table_ls]
+	    if table_ls == 0 then
+		call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	    else
+		set hashtable_ls = Table#_val[table_ls]
+		// return (Value#_key[hashtable_ls], Value#_val[hashtable_ls])
+		call Table#_set( Value#_Int[r], 1, Value#_key[hashtable_ls] )
+		call Table#_set( Value#_Int[r], 2, Value#_val[hashtable_ls] )
+	    endif
+	else
+	    // return (Value#_key[hashtable_ls], Value#_val[hashtable_ls])
+	    call Table#_set( Value#_Int[r], 1, Value#_key[hashtable_ls] )
+	    call Table#_set( Value#_Int[r], 2, Value#_val[hashtable_ls] )
+	endif
+    else
+	set table_ls = Table#_head[Value#_Int2[tbl]]
+	if table_ls == 0 then
+	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	else
+	    set hashtable_ls = Table#_val[table_ls]
+	    // return (Value#_key[hashtable_ls], Value#_val[hashtable_ls])
+	    call Table#_set( Value#_Int[r], 1, Value#_key[hashtable_ls] )
+	    call Table#_set( Value#_Int[r], 2, Value#_val[hashtable_ls] )
+	endif
+    endif
+endfunction
+
+function _next_intmap takes integer tbl, integer index, integer r returns nothing
+    local integer ls
+
+    if index != Value#_Nil then
+	set ls = Table#_internal_get_list_entry(Value#_Int[tbl], Value#_Int[index] )
+	if ls == 0 then
+	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	    call Value#_error_str("invalid key to 'next'")
+	    return
+	else
+	    set ls = List#_next[ls]
+	    if ls == 0 then
+		call _next_hashmap( tbl, Value#_litnil(), r )
+	    else
+		// return (Table#_key[ls], Table#_val[ls])
+		call Table#_set( Value#_Int[r], 1, Value#_litint(Table#_key[ls] ))
+		call Table#_set( Value#_Int[r], 2, Table#_val[ls] )
+	    endif
+	endif
+    else
+	set ls = Table#_head[Value#_Int[tbl]]
+	if ls == 0 then
+	    call _next_hashmap( tbl, Value#_litnil(), r )
+	else
+	    // return (Table#_key[ls], Table#_val[ls])
+	    call Table#_set( Value#_Int[r], 1, Value#_litint(Table#_key[ls] ))
+	    call Table#_set( Value#_Int[r], 2, Table#_val[ls] )
+	endif
+    endif
+endfunction
+
+function _next takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer a_tbl = Table#_get(tbl, 1)
+    local integer index = Table#_get(tbl, 2)
+
+    if index == 0 then
+	set index = Value#_litnil()
+    endif
+
+    if Value#_Type[index] == Jass#_real and R2I(Value#_Real[index]) == Value#_Real[index] then
+	call _next_intmap( a_tbl, Value#_integercontext(index), r )
+    elseif Value#_Type[index] == Jass#_integer then
+	call _next_intmap( a_tbl, index, r )
+    elseif index == Value#_Nil then
+	call _next_intmap( a_tbl, index, r )
+    else
+	call _next_hashmap( a_tbl, index, r )
+    endif
+endfunction 
+
+function _pairs takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer a_tbl = Table#_get(tbl, 1)
+
+    local integer metamethod = Value#_getMetamethod(a_tbl, "__paris")
+
+    if metamethod == Value#_Nil then
+	call Table#_set( Value#_Int[r], 1, Context#_get(ctx, "next"))
+	call Table#_set( Value#_Int[r], 2, a_tbl )
+	call Table#_set( Value#_Int[r], 3, Value#_litnil() )
+    else
+	call Call#_call1(metamethod, a_tbl, r, interpreter)
+    endif
+endfunction

@@ -227,6 +227,8 @@ compile (Programm ts) = do
             , ("rawequal", "Builtins#_rawequal")
             , ("ipairs", "Builtins#_ipairs")
             , ("$ipairs_next", "Builtins#_ipairs_next")
+            , ("next", "Builtins#_next")
+            , ("pairs", "Builtins#_pairs")
 
             , ("$enable_trace", "Builtins#_enable_trace")
             , ("$disable_trace", "Builtins#_disable_trace")

@@ -30,6 +30,10 @@ function _set takes integer tbl, integer reg, integer val returns nothing
     endif
 endfunction
 
+function _internal_get_list_entry takes integer tbl, integer reg returns integer
+    return LoadInteger(_tbl, tbl, reg)
+endfunction
+
 function _get takes integer tbl, integer reg returns integer
     return _val[ LoadInteger(_tbl, tbl, reg) ]
 endfunction
