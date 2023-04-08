@@ -1,5 +1,5 @@
 // scope Builtin/Trigger
-// REQUIRES Print Value Table Jass 
+// REQUIRES Print Value Table Jass List Call
 
 globals
     // GC root

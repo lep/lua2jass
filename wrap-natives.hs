@@ -305,7 +305,7 @@ compile (Programm ts) = do
 
     withFile "auto/Natives.j" WriteMode $ \fh -> do
         hPutStrLn fh "// scope Natives"
-        hPutStrLn fh "// REQUIRES Table Value Jass Error"
+        hPutStrLn fh "// REQUIRES Table Value Jass"
         Builder.hPutBuilder fh $ pretty nativeAst
 
 binsearch :: String -> [ Ast String Stmt ] -> Ast String Stmt

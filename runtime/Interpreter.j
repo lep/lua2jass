@@ -1,6 +1,6 @@
 // scope Interpreter
-// REQUIRES Value Ins Context Table Print Dispatch Error Helper
-// REQUIRES Builtin/Coroutine Builtin/Math Builtin/Table
+// REQUIRES Value Ins Context Table Print Dispatch Helper List Call
+// REQUIRES Builtin/Coroutine Builtin/Math Builtin/Table StringTable
 
 globals
     #include "alloc-globals.j"

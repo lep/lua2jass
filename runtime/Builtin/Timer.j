@@ -1,5 +1,5 @@
 // scope Builtin/Timer
-// REQUIRES Print Value Table Jass Natives
+// REQUIRES Print Value Table Jass Natives Call
 
 globals
     // GC Root

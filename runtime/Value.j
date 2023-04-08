@@ -1,5 +1,5 @@
 // scope Value
-// REQUIRES Table Types List Call Helper
+// REQUIRES Table List Call Helper
 
 globals
 
@@ -456,12 +456,12 @@ function _settable takes integer t, integer k, integer v returns nothing
     //call Print#_print("_settable("+I2S(t)+","+I2S(k)+","+I2S(v)+")")
 
     if _Type[t] != Types#_Table then
-	call Print#_warn("Expected table but got "+I2S(_Type[t]))
+	call Print#_error("Expected table but got "+I2S(_Type[t]))
         return
     endif
 
     if _Type[k] == Types#_Nil then
-	call Print#_warn("table index is nil")
+	call Print#_error("table index is nil")
         return
     endif
 

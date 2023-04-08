@@ -1,5 +1,6 @@
 // scope Builtins
-// REQUIRES Print Value Table Context Natives Builtin/Boolexpr GC Helper
+// REQUIRES Print Value Table Context Natives Wrap
+// REQUIRES Builtin/Boolexpr GC Helper Call Types
 
 
 
@@ -283,7 +284,7 @@ endfunction
 
 function _ipairs takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer r = Table#_get(tbl, 0)
-    local integer a_tbl  =Table#_get(tbl, 1)
+    local integer a_tbl = Table#_get(tbl, 1)
 
     call Table#_set( Value#_Int[r], 1, Context#_get( ctx, "$ipairs_next" ))
     call Table#_set( Value#_Int[r], 2, a_tbl )
