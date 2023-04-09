@@ -848,10 +848,19 @@ function _tostring_concat takes integer v returns string
     return ""
 endfunction
 
+function _getMetamethod takes integer value, string method returns integer
+    if _Type[value] != Types#_Table then
+	return _litnil()
+    elseif _Int3[value] == 0 then
+	return _litnil()
+    else
+	return _gettable( _Int3[value], _litstring(method) )
+    endif
+endfunction
+
 // @recursive
 function _tostring takes integer v, integer interpreter returns string
     local integer ty = _Type[v]
-    local integer metatable
     local integer metamethod
     local integer ret
     if ty == Jass#_integer then
@@ -869,14 +878,11 @@ function _tostring takes integer v, integer interpreter returns string
     elseif ty == Types#_Foreign then
 	return "Foreign: " + I2S(v)
     elseif ty == Types#_Table then
-	set metatable = _Int3[v]
-	if metatable != 0 then
-	    set metamethod = _gettable( metatable, _litstring("__tostring"))
-	    if metamethod != _Nil then
-		set ret = _table()
-		call Call#_call1( metamethod, v, ret, interpreter )
-		return _tostring( Table#_get( _Int[ret], 1), interpreter )
-	    endif
+	set metamethod = _getMetamethod(v, "__tostring")
+	if metamethod != _Nil then
+	    set ret = _table()
+	    call Call#_call1( metamethod, v, ret, interpreter )
+	    return _tostring( Table#_get( _Int[ret], 1), interpreter )
 	endif
 	return "Table: " + I2S(_Int[v])
     elseif ty == Jass#_boolean then
@@ -1014,16 +1020,6 @@ function _integercontext takes integer v returns integer
     endif
 
     return _litnil()
-endfunction
-
-function _getMetamethod takes integer value, string method returns integer
-    if _Type[value] != Types#_Table then
-	return _litnil()
-    elseif _Int3[value] == 0 then
-	return _litnil()
-    else
-	return _gettable( _Int3[value], _litstring(method) )
-    endif
 endfunction
 
 function _mark_used takes integer value returns nothing

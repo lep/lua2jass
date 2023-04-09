@@ -307,6 +307,7 @@ function _next_hashmap takes integer tbl, integer index, integer r returns nothi
 	if hashtable_ls == 0 then
 	    set table_ls = List#_next[table_ls]
 	    if table_ls == 0 then
+		// return nil
 		call Table#_set( Value#_Int[r], 1, Value#_litnil() )
 	    else
 		set hashtable_ls = Table#_val[table_ls]
@@ -322,6 +323,7 @@ function _next_hashmap takes integer tbl, integer index, integer r returns nothi
     else
 	set table_ls = Table#_head[Value#_Int2[tbl]]
 	if table_ls == 0 then
+	    // return nil
 	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
 	else
 	    set hashtable_ls = Table#_val[table_ls]
@@ -387,7 +389,7 @@ function _pairs takes integer tbl, integer ctx, integer interpreter returns noth
     local integer r = Table#_get(tbl, 0)
     local integer a_tbl = Table#_get(tbl, 1)
 
-    local integer metamethod = Value#_getMetamethod(a_tbl, "__paris")
+    local integer metamethod = Value#_getMetamethod(a_tbl, "__pairs")
 
     if metamethod == Value#_Nil then
 	call Table#_set( Value#_Int[r], 1, Context#_get(ctx, "next"))
@@ -396,4 +398,11 @@ function _pairs takes integer tbl, integer ctx, integer interpreter returns noth
     else
 	call Call#_call1(metamethod, a_tbl, r, interpreter)
     endif
+endfunction
+
+function _tostring takes integer tbl, integer ctx, integer interpreter returns nothing
+    local integer r = Table#_get(tbl, 0)
+    local integer v = Table#_get(tbl, 1)
+
+    call Table#_set( Value#_Int[r], 1, Value#_litstring(Value#_tostring(v, interpreter) ) )
 endfunction

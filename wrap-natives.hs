@@ -229,6 +229,7 @@ compile (Programm ts) = do
             , ("$ipairs_next", "Builtins#_ipairs_next")
             , ("next", "Builtins#_next")
             , ("pairs", "Builtins#_pairs")
+            , ("tostring", "Builtins#_tostring")
 
             , ("$enable_trace", "Builtins#_enable_trace")
             , ("$disable_trace", "Builtins#_disable_trace")
