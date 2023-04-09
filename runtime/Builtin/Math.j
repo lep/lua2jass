@@ -49,8 +49,7 @@ function _floor takes integer tbl, integer ctx, integer interpreter returns noth
     local integer r = Table#_get( tbl, 0 )
     local integer x = Table#_get( tbl, 1 )
     set x = Value#_numbercontext(x)
-    set x = Value#_idiv( x, Value#_litint(1) )
-    call Table#_set( Value#_Int[r], 1, x )
+    call Table#_set( Value#_Int[r], 1, Value#_floor(Value#_2real(x, interpreter) ))
 endfunction
 
 function _fmod takes integer tbl, integer ctx, integer interpreter returns nothing
@@ -94,7 +93,6 @@ function _log takes integer tbl, integer ctx, integer interpreter returns nothin
     set x_value = Value#_numbercontext( x_value )
     if base_value != 0 then
         set base_value = Value#_numbercontext( base_value )
-        //set base = Value#_2real( base_value )
         call Table#_set( Value#_Int[r], 1, Value#_litfloat( _Ln(Value#_2real(x_value, interpreter)) / _Ln(Value#_2real(base_value, interpreter)) ) )
     else
         call Table#_set( Value#_Int[r], 1, Value#_litfloat( _Ln(Value#_2real(x_value, interpreter)) ) )

@@ -74,10 +74,6 @@ function _Filter takes integer tbl, integer ctx, integer interpreter returns not
     
 endfunction
 
-function _Condition takes integer tbl, integer ctx, integer interpreter returns nothing
-    call _Filter( tbl, ctx, interpreter )
-endfunction
-
 function _And takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer r = Table#_get(tbl, 0)
     local integer arg1 = Table#_get(tbl, 1)
