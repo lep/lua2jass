@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Bytecode where
+module Compiler.Bytecode where
 
 import Data.Text (Text)
 import Data.Text.Encoding
@@ -391,3 +391,4 @@ toJass x i =
 toJassFunction asm =
     let stmts = concat $ zipWith toJass asm [1..]
     in Jass.Programm [ Jass.Function Jass.Normal "_init" [] "nothing" stmts ]
+

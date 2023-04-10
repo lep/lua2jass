@@ -1,6 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 
+module Compiler.Lua where
+
+import qualified Jass.Ast as Jass
+
 import Prelude hiding (head, LT, GT, EQ)
 
 import Data.Aeson (encode)
@@ -17,11 +21,13 @@ import Control.Arrow
 import Control.Monad.Writer
 import Control.Monad.State
 
-import Bytecode (Bytecode)
-import qualified Bytecode as B
+import Compiler.Bytecode (Bytecode)
+import qualified Compiler.Bytecode as B
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 import qualified Data.ByteString.Lazy as BL
 
@@ -770,29 +776,12 @@ compileVar = \case
         emit $ B.LitString index name
         emit $ B.GetTable x table index
         pure x
-        
-
-data Output = JSON | JASS
-    deriving (Show)
-
-options :: Parser (FilePath, Output)
-options = (,) <$> argument str (metavar "FILE") <*> flag JSON JASS (long "jass")
-
-main :: IO ()
-main = compile =<< execParser opts
-  where
-    opts = info (options <**> helper) mempty
 
 
-compile :: (FilePath, Output) -> IO ()
-compile (fp, mode) = do
-    Right ast <- parseFile fp
+
+compile :: Block -> ((String, Set String), Jass.Ast String Jass.Programm)
+compile ast =
     let asm = concatMap snd . Map.toList . runCompiler $ compileScript ast
-
-    case mode of
-        JASS -> do
-            let jasspretty = Jass.pretty $ B.toJassFunction asm
-            putStrLn "// scope Auto"
-            putStrLn "// REQUIRES Ins"
-            hPutBuilder stdout jasspretty
-        JSON -> BL.putStr $ encode asm
+        scope = "Auto"
+        deps = Set.singleton "Ins"
+    in ((scope, deps), B.toJassFunction asm)

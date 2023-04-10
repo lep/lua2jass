@@ -10,11 +10,13 @@ import Data.FileEmbed
 
 import qualified Compiler.Preprocess as CPre
 import qualified Compiler.Natives as CNative
+import qualified Compiler.Lua as CLua
 
 import qualified Data.ByteString.Builder as Builder
 
 import System.Environment (getArgs)
-import System.IO (stdout)
+import System.IO (withFile, IOMode(WriteMode) )
+import System.Exit (exitFailure)
 import Control.Monad (void)
 import Text.Megaparsec (errorBundlePretty)
 
@@ -28,6 +30,14 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 
 import Text.Megaparsec (runParser, errorBundlePretty )
+
+import qualified Data.Text.IO as Text
+
+import qualified Language.Lua as Lua (parseNamedText, chunk)
+
+import AlexTools (prettySourceRangeLong)
+
+import Options.Applicative
 
 tsort :: forall x. Ord x => [(x, Set x)] -> [x]
 tsort r = reverse . fst . foldl' (visit Set.empty) ([], Set.empty) $ map fst r
@@ -44,15 +54,6 @@ tsort r = reverse . fst . foldl' (visit Set.empty) ([], Set.empty) $ map fst r
             (xs, g) = foldl' (visit temp') acc deps
         in (x:xs, Set.insert x g)
 
-{-
-1. process embedded files (include alloc & prefix stuff)
-2. process common.j
-    1. generate ASTs
-    2. process these ASTs
-3. process input.lua
-4. tsort
-5. print
--}
 extraFunctions = Map.fromList 
     [ ("$coroutine.create", "Builtin::Coroutine#_create")
     , ("$coroutine.yield", "Builtin::Coroutine#_yield")
@@ -122,10 +123,10 @@ extraFunctions = Map.fromList
     , ("ForGroup", "Builtins#_ForGroup")
 
     -- TODO:
-    --  - DestroyBoolexpr, TriggerAddCondition, TriggerRegisterEnterRegion
-    --  - TriggerRegisterLeaveRegion, TriggerRegisterPlayerUnitEvent,
-    --  - TriggerRegisterFilterUnitEvent, TriggerRegisterUnitInRange,
-    --  - TriggerEvaluate, SaveBooleanExprHandle, GetTriggeringTrigger,
+    -- - DestroyBoolexpr, TriggerAddCondition, TriggerRegisterEnterRegion
+    -- - TriggerRegisterLeaveRegion, TriggerRegisterPlayerUnitEvent,
+    -- - TriggerRegisterFilterUnitEvent, TriggerRegisterUnitInRange,
+    -- - TriggerEvaluate, SaveBooleanExprHandle, GetTriggeringTrigger,
     -- - LoadTriggerHandle, LoadTimerHandle, DestroyTrigger
     ]
 
@@ -164,31 +165,46 @@ parseFromFile p file = runParser p file . (++"\n") <$> readFile file
 handleCommonJ path = do
     r <- parseFromFile Jass.programm path
     case r of
-        Left err -> pure . Left $ errorBundlePretty err
+        Left err -> do
+            putStrLn $ errorBundlePretty err
+            exitFailure
+
         Right ast ->
             let asts = CNative.compile extraFunctions ast
                 asts' = map (\((scope, deps), ast) -> ((scope, deps), CPre.rename "lua_" scope ast)) asts
-            in pure $ Right asts'
+            in pure asts'
 
 mergeScripts xs =
     let m = Map.fromList $ map (\((scope, _), ast) -> (scope, ast)) xs
         sorted = tsort $ map (\((scope, deps), _) -> (scope, deps)) xs
     in foldl' (\ast k -> Jass.concat ast $ Map.findWithDefault (error k) k m) (Jass.Programm []) sorted
 
+openAndCompileLua path = do
+    r <- Lua.parseNamedText Lua.chunk path <$> Text.readFile path
+    case r of
+        Left (sourceRange, error) -> do
+            putStrLn $ unwords ["Error:", prettySourceRangeLong sourceRange, error ]
+            exitFailure
+        Right ast -> do
+            let ((scope, deps), j)  = CLua.compile ast
+                j' = CPre.rename "lua_" scope j
 
+            pure ((scope, deps), j')
+
+options :: Parser (FilePath, FilePath, FilePath)
+options = (,,) <$> argument str (metavar "common.j" <> help "Path to common.j")
+               <*> argument str (metavar "war3map.lua" <> help "Path to your lua script")
+               <*> argument str (metavar "war3map.j" <> showDefault <> value "war3map.j" <> help "Path to the output")
 
 main = do
-    [mode, commonj] <- getArgs
-    case mode of
-        "just-preprocess" -> do
-            Right ((scope, deps), j) <- CPre.process "lua_" <$> readFile commonj
-            Builder.hPutBuilder stdout $ Jass.pretty j
-        _ -> do
-            stuff <- handleCommonJ commonj
-            case stuff of
-                Left err -> putStrLn err
-                Right xs -> do
-                    let j = mergeScripts $ xs ++ processed
-                    Builder.hPutBuilder stdout $ Jass.pretty j
-
-
+    (commonj, war3map_lua, war3map_j) <- execParser opts
+    auto1 <- handleCommonJ commonj
+    auto2 <- openAndCompileLua war3map_lua
+    let j = mergeScripts $ auto2:auto1 ++ processed
+    withFile war3map_j WriteMode $ \h ->
+        Builder.hPutBuilder h $ Jass.pretty j
+  where
+    opts = info (options <**> helper) $
+        fullDesc
+        <> progDesc "Compiles a lua file to jass"
+        <> header "lua2jass - a lua to jass compiler"
