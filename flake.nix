@@ -20,6 +20,8 @@
     outputs = { self, nixpkgs, flake-utils, pjass, common-j, wc3 }:
 	flake-utils.lib.eachDefaultSystem (system:
             let pkgs = import nixpkgs { inherit system; };
+		packageName = "lua2jass";
+
                 pjass-drv = pjass.defaultPackage.${system};
 		#wc3-shell = wc3.devShell.${system};
 		wc3-drv = wc3.packages.${system};
@@ -37,7 +39,27 @@
 		    ps.tappy
 		]);
 
-            in {
+		lua2jass = pkgs.stdenv.mkDerivation {
+		    name = "lua2jass";
+		    src = self;
+		    buildPhase = ''
+			ls runtime
+			${ghcPackages}/bin/ghc -O Main.hs -o lua2jass
+		    '';
+
+		    installPhase = ''
+			mkdir -p $out/bin/
+			install -t $out/bin lua2jass
+		    '';
+		};
+
+            in rec {
+		packages = {
+		    ${packageName} = lua2jass;
+		};
+
+		defaultPackage = packages.${packageName};
+
 		devShell = pkgs.mkShell {
 		    env = {
 		        commonj = "${common-j}/common.j";
