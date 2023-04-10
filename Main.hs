@@ -39,12 +39,12 @@ import AlexTools (prettySourceRangeLong)
 
 import Options.Applicative
 
-tsort :: forall x. Ord x => [(x, Set x)] -> [x]
+tsort :: Ord x => [(x, Set x)] -> [x]
 tsort r = reverse . fst . foldl' (visit Set.empty) ([], Set.empty) $ map fst r
   where
     m = Map.fromList r
 
-    visit :: Set x -> ([x], Set x) -> x -> ([x], Set x)
+    --visit :: Ord x => Set x -> ([x], Set x) -> x -> ([x], Set x)
     visit temp acc@(_, g) x
         | x `Set.member` g = acc
         | x `Set.member` temp = error "tsort"
@@ -206,5 +206,4 @@ main = do
   where
     opts = info (options <**> helper) $
         fullDesc
-        <> progDesc "Compiles a lua file to jass"
         <> header "lua2jass - a lua to jass compiler"

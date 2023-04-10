@@ -7,8 +7,6 @@ import Data.Text.Encoding
 import qualified Data.Text as Text
 import Prelude hiding (LT,GT,EQ)
 
-import Data.Aeson
-
 import Language.Lua.StringLiteral
 import Data.ByteString.Lazy (ByteString)
 import qualified Data.ByteString.Lazy as BL
@@ -79,58 +77,6 @@ bla s =
   case interpretStringLiteral $ Text.unpack s of
     Nothing -> error . show $ ("could not interp", s)
     Just bs -> decodeUtf8 $ BL.toStrict bs
-
-instance ToJSON Bytecode where
-    toJSON = \case
-        Fun lbl fn -> toJSON ( "fun", lbl, fn)
-        Call a b -> toJSON ("call", a, b)
-        Enter -> toJSON ["enter"]
-        Leave -> toJSON ["leave"]
-        GetLit r t -> toJSON ("getlit", r, t)
-        LitString r t -> toJSON ("lit", r, t)
-        LitInt r t -> toJSON ("lit", r, readT t :: Int)
-        LitFloat r t -> toJSON ("lit", r, t)
-        LitBool r t -> toJSON ("lit", r, t)
-        LitNil r -> toJSON ("nil", r)
-        Set a b -> toJSON ("set", a, b)
-        SetLit a b -> toJSON ("setlit", a, b)
-        Ret -> toJSON ["ret"]
-        Label lbl -> toJSON ("lbl", lbl)
-        Jump lbl -> toJSON ("jmp", lbl)
-        JumpT lbl r -> toJSON ("jmpt", lbl, r)
-        Not a b -> toJSON ("not", a, b)
-        Neg a b -> toJSON ("neg", a, b)
-        Len a b -> toJSON ("len", a, b)
-        Complement a b -> toJSON ("complement", a, b)
-        GTE a b c -> toJSON ("gte", a, b, c)
-        GT a b c -> toJSON ("gt", a, b, c)
-        LTE a b c -> toJSON ("lte", a, b, c)
-        LT a b c -> toJSON ("lt", a, b, c)
-        EQ a b c -> toJSON ("eq", a, b, c)
-        NEQ a b c -> toJSON ("neq", a, b, c)
-        Mul a b c -> toJSON ("mul", a, b, c)
-        Div a b c -> toJSON ("div", a, b, c)
-        Exp a b c -> toJSON ("exp", a, b, c)
-        Mod a b c -> toJSON ("mod", a, b, c)
-        Sub a b c -> toJSON ("sub", a, b, c)
-        Add a b c -> toJSON ("add", a, b, c)
-        IDiv a b c -> toJSON ("idiv", a, b, c)
-        ShiftL a b c -> toJSON ("shiftl", a, b, c)
-        ShiftR a b c -> toJSON ("shiftr", a, b, c)
-        BAnd a b c -> toJSON ("band", a, b, c)
-        BOr a b c -> toJSON ("bor", a, b, c)
-        BXor a b c -> toJSON ("bxor", a, b, c)
-        Concat a b c -> toJSON ("concat", a, b, c)
-        Lambda r n -> toJSON ("lambda", r, n)
-        Local n -> toJSON ("local", n)
-        Table n -> toJSON ("table", n)
-        Append idx a b -> toJSON ("append", idx, a, b)
-        GetList idx a b -> toJSON ("getlist", idx, a, b)
-        SetTable a b c -> toJSON ("settable", a, b, c)
-        GetTable a b c -> toJSON ("gettable", a, b, c)
-
-        Comment txt -> toJSON ("comment", txt)
-        --x -> error $ show x
 
 readT :: Read a => Text -> a
 readT = read . Text.unpack

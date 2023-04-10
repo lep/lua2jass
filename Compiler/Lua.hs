@@ -7,8 +7,6 @@ import qualified Jass.Ast as Jass
 
 import Prelude hiding (head, LT, GT, EQ)
 
-import Data.Aeson (encode)
-
 import Data.Text (Text)
 import qualified Data.Text as Text
 
