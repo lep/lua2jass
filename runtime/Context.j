@@ -1,5 +1,5 @@
 // scope Context
-// REQUIRES StringTable Print
+// REQUIRES StringTable Print Alloc
 
 globals
 
@@ -31,11 +31,7 @@ globals
 
     // dump GC stuff
     boolean array _mark
-
-    #include "alloc-globals.j"
 endglobals
-
-#include "alloc.j"
 
 function _new takes nothing returns integer
     return _alloc()

@@ -1,5 +1,5 @@
 // scope Value
-// REQUIRES Table List Call Helper
+// REQUIRES Table List Call Helper Alloc
 
 globals
 
@@ -30,10 +30,12 @@ globals
 
     boolean array _mark
 
-    #include "alloc-globals.j"
+    // hash random constants
+    constant integer _HASH_RANDOM_INT = GetRandomInt(1, 31337)
+    constant real _HASH_RANDOM_REAL = GetRandomReal(2, 10)
+    constant integer _HASH_RANDOM_BOOL = GetRandomInt(-100, 100)
+    constant integer _HASH_RANDOM_NIL = GetRandomInt(2342, 42069)
 endglobals
-
-#include "alloc.j"
 
 
 function _new takes nothing returns integer
@@ -421,29 +423,27 @@ endfunction
 
 // @noalloc
 function _hash takes integer v returns integer
-    // TODO: use some random seed
     local integer ty = _Type[v]
     if ty == Jass#_string then
 	return StringHash(_String[v])
     elseif ty == Types#_Table then
-	return _Int[v] * 23 + 1337
+	return _Int[v] * 23 + _HASH_RANDOM_INT
     elseif ty == Jass#_real then
-	return R2I( _Real[v] * 16180.33 )
+	return R2I( _Real[v] * _HASH_RANDOM_REAL )
     elseif ty == Types#_Lambda then
 	return _Int[v]
     elseif ty == Types#_BuiltInFunction then
 	return _Int[v]
-	return StringHash(_String[v])
     elseif ty == Types#_Foreign then
 	return _Int[v]
     elseif ty == Jass#_boolean then
 	if _Bool[v] then
-	    return 0x11111111
+	    return _HASH_RANDOM_BOOL
 	else
-	    return 0xffffffff
+	    return -_HASH_RANDOM_BOOL
 	endif
     else
-	return 0
+	return _HASH_RANDOM_NIL
     endif
 endfunction
 

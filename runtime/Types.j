@@ -1,5 +1,5 @@
 // scope Types
-// REQUIRES 
+
 globals
     constant integer _Foreign		= -3
     constant integer _Coroutine		= -4

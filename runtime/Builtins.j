@@ -1,6 +1,6 @@
 // scope Builtins
 // REQUIRES Print Value Table Context Natives Wrap
-// REQUIRES Builtin/Boolexpr GC Helper Call Types
+// REQUIRES Builtin::Boolexpr GC Helper Call Types
 
 
 
@@ -159,11 +159,11 @@ function _ForForce takes integer tbl, integer ctx, integer interpreter returns n
     local integer arg1 = Table#_get(tbl, 1)
     local integer arg2 = Table#_get(tbl, 2)
 
-    set Builtin/Boolexpr#_code_r = r
-    set Builtin/Boolexpr#_code_i = interpreter
-    set Builtin/Boolexpr#_code_v = arg2
+    set Builtin::Boolexpr#_code_r = r
+    set Builtin::Boolexpr#_code_i = interpreter
+    set Builtin::Boolexpr#_code_v = arg2
 
-    call ForForce( Natives#_convert2force(arg1, interpreter), function Builtin/Boolexpr#_cb)
+    call ForForce( Natives#_convert2force(arg1, interpreter), function Builtin::Boolexpr#_cb)
 endfunction
 
 function _ForGroup takes integer tbl, integer ctx, integer interpreter returns nothing
@@ -171,11 +171,11 @@ function _ForGroup takes integer tbl, integer ctx, integer interpreter returns n
     local integer arg1 = Table#_get(tbl, 1)
     local integer arg2 = Table#_get(tbl, 2)
 
-    set Builtin/Boolexpr#_code_r = r
-    set Builtin/Boolexpr#_code_i = interpreter
-    set Builtin/Boolexpr#_code_v = arg2
+    set Builtin::Boolexpr#_code_r = r
+    set Builtin::Boolexpr#_code_i = interpreter
+    set Builtin::Boolexpr#_code_v = arg2
 
-    call ForGroup( Natives#_convert2group(arg1, interpreter), function Builtin/Boolexpr#_cb)
+    call ForGroup( Natives#_convert2group(arg1, interpreter), function Builtin::Boolexpr#_cb)
 endfunction
 
 

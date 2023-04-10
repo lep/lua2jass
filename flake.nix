@@ -30,6 +30,7 @@
 		    ps.optparse-applicative
 		    ps.megaparsec
 		    ps.parser-combinators
+                    ps.file-embed
                 ]);
 
 		pythonPackages = pkgs.python3.withPackages( ps: [

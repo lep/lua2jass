@@ -1,4 +1,4 @@
-// scope Builtin/Math
+// scope Builtin::Math
 // REQUIRES Print Context Value
 
 // TODO: type, tointeger

@@ -1,5 +1,5 @@
 // scope Deque
-// REQUIRES Print
+// REQUIRES Print Alloc
 
 globals
     // global for fresh cells
@@ -13,10 +13,7 @@ globals
 
     // struct deque
     integer array _head
-    #include "alloc-globals.j"
 endglobals
-
-#include "alloc.j"
 
 
 // seems to work

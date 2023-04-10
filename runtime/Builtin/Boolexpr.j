@@ -1,4 +1,4 @@
-// scope Builtin/Boolexpr
+// scope Builtin::Boolexpr
 // REQUIRES Print Value Table Jass Call Natives
 
 globals

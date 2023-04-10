@@ -1,9 +1,7 @@
 // scope Table
-// REQUIRES List Print
+// REQUIRES List Print Alloc
 
 globals
-    #include "alloc-globals.j"
-
     hashtable _tbl = InitHashtable()
     integer array _head
 
@@ -13,8 +11,6 @@ globals
     integer array _key
     integer array _val
 endglobals
-
-#include "alloc.j"
 
 function _set takes integer tbl, integer reg, integer val returns nothing
     local integer ls = LoadInteger(_tbl, tbl, reg)

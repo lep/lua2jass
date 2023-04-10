@@ -21,6 +21,7 @@ module Jass.Ast
     , s2i, s2r, rawcode2int
     , eliminateElseIfs
     , isGlobal, isLocal, isFunction, isOp
+    , Jass.Ast.concat
     ) where
 
 import Prelude hiding (fmap, foldMap, traverse)
@@ -319,3 +320,6 @@ isOp x = x `elem` ["and", "or", "not"
                   , "+", "-", "*", "/", "%"
                   , "==", "!=", "<=", ">=", "<", ">"
                   ]
+
+concat :: Ast v Programm -> Ast v Programm -> Ast v Programm
+concat (Programm a) (Programm b) = Programm $ a <> b

@@ -9,14 +9,14 @@ globals
     integer array _ls
 endglobals
 
-function _set takes integer _tbl, string _k, integer _v returns nothing
-    local integer _lst = Table#_get(_tbl, StringHash(_k))
+function _set takes integer tbl, string k, integer v returns nothing
+    local integer _lst = Table#_get(tbl, StringHash(k))
     local integer _tmp = _lst
 
     loop
     exitwhen _tmp == 0
-        if _key[_tmp] == _k then
-            set _value[_tmp] = _v
+        if _key[_tmp] == k then
+            set _value[_tmp] = v
             return
         endif
         set _tmp = List#_next[_tmp]
@@ -24,16 +24,16 @@ function _set takes integer _tbl, string _k, integer _v returns nothing
     // either _lst was 0 in the first place or no element was found in the list
     set _lst = List#_cons(_lst)
 
-    set _key[_lst] = _k
-    set _value[_lst] = _v
-    call Table#_set(_tbl, StringHash(_k), _lst)
+    set _key[_lst] = k
+    set _value[_lst] = v
+    call Table#_set(tbl, StringHash(k), _lst)
 endfunction
 
-function _get takes integer _tbl, string _k returns integer
-    local integer _lst = Table#_get(_tbl, StringHash(_k))
+function _get takes integer tbl, string k returns integer
+    local integer _lst = Table#_get(tbl, StringHash(k))
     loop
     exitwhen _lst == 0
-        if _key[_lst] == _k then
+        if _key[_lst] == k then
             return _value[_lst]
         endif
         set _lst = List#_next[_lst]

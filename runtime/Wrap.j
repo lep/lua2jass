@@ -1,5 +1,5 @@
 // scope Wrap
-// REQUIRES 
+
 globals
     trigger _WrapAround
     integer _Param1

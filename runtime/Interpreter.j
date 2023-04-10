@@ -1,10 +1,8 @@
 // scope Interpreter
-// REQUIRES Value Ins Context Table Print Dispatch Helper List Call
-// REQUIRES Builtin/Coroutine Builtin/Math Builtin/Table StringTable
+// REQUIRES Value Ins Context Table Print Dispatch Helper List Call Alloc
+// REQUIRES Builtin::Coroutine Builtin::Math Builtin::Table StringTable
 
 globals
-    #include "alloc-globals.j"
-
     integer _GlobalInterpreter
 
     constant integer _StopInterpreter = 1
@@ -16,7 +14,6 @@ globals
     // list _stack
     integer array _ctx
 endglobals
-#include "alloc.j"
 
 function _Not takes integer ctx, integer ip returns nothing
     local integer v1 = Table#_get(Context#_tmps[ctx], Ins#_op2[ip])
@@ -779,17 +776,17 @@ function _Ret takes integer ctx, integer interpreter returns boolean
 
 	if Context#_ret_behaviour[ base_ctx ] == _CoroutineYield then
 	    //call Print#_print("  - returning from coroutine")
-	    set co_value = Builtin/Coroutine#_ctx2value[ base_ctx ]
+	    set co_value = Builtin::Coroutine#_ctx2value[ base_ctx ]
 
 	    // prepend true to return table
-	    set base_context_returntable_value = Builtin/Coroutine#_return_resume[co_value]
+	    set base_context_returntable_value = Builtin::Coroutine#_return_resume[co_value]
 	    set tmp_table = Table#_alloc()
 	    call Table#_append( tmp_table, Value#_Int[base_context_returntable_value], 1 )
 	    call Table#_set( tmp_table, 1, Value#_litbool(true) )
 	    call Table#_getlist( Value#_Int[base_context_returntable_value], tmp_table, 1 )
 
 
-	    set Builtin/Coroutine#_status[co_value] = Builtin/Coroutine#_StatusDead
+	    set Builtin::Coroutine#_status[co_value] = Builtin::Coroutine#_StatusDead
 	endif
 
 	set _stack_top[interpreter] = List#_next[head]
@@ -1023,9 +1020,9 @@ function _debug_start_main takes nothing returns nothing
     call Print#_print("_debug_start_main initial context: "+I2S(ctx))
 
     call Dispatch#_register(ctx)
-    call Builtin/Coroutine#_register(ctx)
-    call Builtin/Math#_register(ctx)
-    call Builtin/Table#_register(ctx)
+    call Builtin::Coroutine#_register(ctx)
+    call Builtin::Math#_register(ctx)
+    call Builtin::Table#_register(ctx)
 
     loop
 	exitwhen not _step(interpreter)

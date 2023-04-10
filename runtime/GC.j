@@ -17,6 +17,8 @@ globals
     integer _value_queue
     integer array _value
     boolean array _value_inqueue
+
+    string _Debug = ""
 endglobals
 
 function _push_context takes integer ctx returns nothing
@@ -34,7 +36,7 @@ endfunction
 
 function _push_value takes integer value returns nothing
     if value <= 0 then
-	call Print#_warn("_push_value: 0")
+	call Print#_warn("_push_value: 0 "+ _Debug)
     elseif value >= JASS_MAX_ARRAY_SIZE then
 	call Print#_warn("_push_value: inf")
     else
@@ -43,6 +45,7 @@ function _push_value takes integer value returns nothing
 	    set _value_inqueue[value] = _inqueue_flag
 	endif
     endif
+    set _Debug = ""
 endfunction
 
 function _work_iqueue takes nothing returns nothing
@@ -62,17 +65,17 @@ function _work_iqueue takes nothing returns nothing
     endloop
 
 
-    set i = Builtin/Trigger#_cnt
+    set i = Builtin::Trigger#_cnt
     loop
     exitwhen i <= 0 
-	call _push_value( Builtin/Trigger#_trigger[i])
+	call _push_value( Builtin::Trigger#_trigger[i])
 	set i = i - 1
     endloop
 
-    set i = Builtin/Timer#_cnt
+    set i = Builtin::Timer#_cnt
     loop
     exitwhen i <= 0 
-	call _push_value( Builtin/Timer#_timer[i])
+	call _push_value( Builtin::Timer#_timer[i])
 	set i = i - 1
     endloop
 endfunction
@@ -81,31 +84,31 @@ function _handle_boolexpr takes integer value returns nothing
     local integer ty = Value#_Int3[value]
     call _push_value( value )
 
-    if ty == Builtin/Boolexpr#_NORMAL then
-        call _push_value( Builtin/Boolexpr#_Fun1[value] )
-    elseif ty == Builtin/Boolexpr#_AND then
-        call _handle_boolexpr( Builtin/Boolexpr#_Fun1[value] )
-        call _handle_boolexpr( Builtin/Boolexpr#_Fun2[value] )
-    elseif ty == Builtin/Boolexpr#_OR then
-        call _handle_boolexpr( Builtin/Boolexpr#_Fun1[value] )
-        call _handle_boolexpr( Builtin/Boolexpr#_Fun2[value] )
-    elseif ty == Builtin/Boolexpr#_NOT then
-        call _handle_boolexpr( Builtin/Boolexpr#_Fun1[value] )
+    if ty == Builtin::Boolexpr#_NORMAL then
+        call _push_value( Builtin::Boolexpr#_Fun1[value] )
+    elseif ty == Builtin::Boolexpr#_AND then
+        call _handle_boolexpr( Builtin::Boolexpr#_Fun1[value] )
+        call _handle_boolexpr( Builtin::Boolexpr#_Fun2[value] )
+    elseif ty == Builtin::Boolexpr#_OR then
+        call _handle_boolexpr( Builtin::Boolexpr#_Fun1[value] )
+        call _handle_boolexpr( Builtin::Boolexpr#_Fun2[value] )
+    elseif ty == Builtin::Boolexpr#_NOT then
+        call _handle_boolexpr( Builtin::Boolexpr#_Fun1[value] )
     endif
 endfunction
 
 function _handle_coroutine takes integer co returns nothing
-    local integer ls = Table#_head[ Builtin/Coroutine#_return_yield[co] ]
+    local integer ls = Table#_head[ Builtin::Coroutine#_return_yield[co] ]
 
-    if Builtin/Coroutine#_return_resume[co] != 0 then
-	call _push_value( Builtin/Coroutine#_return_resume[co] )
+    if Builtin::Coroutine#_return_resume[co] != 0 then
+	call _push_value( Builtin::Coroutine#_return_resume[co] )
     endif
 
-    set ls = Builtin/Coroutine#_stop_frame[co]
+    set ls = Builtin::Coroutine#_stop_frame[co]
     loop
     exitwhen ls == 0
 	call _push_context( Interpreter#_ctx[ls] )
-	exitwhen ls == Builtin/Coroutine#_base_frame[co]
+	exitwhen ls == Builtin::Coroutine#_base_frame[co]
 	set ls = List#_next[ls]
     endloop
 endfunction
@@ -121,6 +124,7 @@ function _work_vqueue takes nothing returns nothing
     local integer ls3
     //call Print#_print("_work_vqueue")
 
+
     loop
 	set ls = Deque#_shift( _value_queue )
 	exitwhen ls == 0
@@ -130,11 +134,14 @@ function _work_vqueue takes nothing returns nothing
 
 	set ty = Value#_Type[value]
 
+	//set bla =  "_work_vqueue table "+Value#_tostring_debug(value)
+
 	if ty == Types#_Table then
 
 	    set ls2 = Table#_head[ Value#_Int[value] ]
 	    loop
 	    exitwhen ls2 == 0
+		//set _Debug = "_work_vqueue 1"
 		call _push_value( Table#_val[ls2])
 		set ls2 = List#_next[ls2]
 	    endloop
@@ -145,7 +152,9 @@ function _work_vqueue takes nothing returns nothing
                 set ls3 = Table#_val[ls2]
                 loop
                 exitwhen ls3 == 0
+		    //set _Debug = "_work_vqueue 2"
                     call _push_value( Value#_key[ls3] )
+		    //set _Debug = "_work_vqueue 3 key is: " + Value#_tostring_debug(Value#_key[ls3])
                     call _push_value( Value#_val[ls3] )
                     set ls3 = List#_next[ls3]
                 endloop
@@ -163,15 +172,18 @@ function _work_vqueue takes nothing returns nothing
 	    call _handle_coroutine( value )
 	elseif ty == Types#_Foreign then
 	    if Value#_Int[value] == Jass#_trigger then
-		set ls2 = Builtin/Trigger#_trigger_actions[value]
+		set ls2 = Builtin::Trigger#_trigger_actions[value]
 		loop
 		exitwhen ls2 == 0
-		    call _push_value( Builtin/Trigger#_trigger_action[ls2] )
+		    //set _Debug = "_work_vqueue 4"
+		    call _push_value( Builtin::Trigger#_trigger_action[ls2] )
 		    set ls2 = List#_next[ls2]
 		endloop
 	    elseif Value#_Int[value] == Jass#_triggeraction then
+		//set _Debug = "_work_vqueue 5"
 		call _push_value( Value#_Int2[ value ] )
 	    elseif Value#_Int[value] == Jass#_timer then
+		//set _Debug = "_work_vqueue 6"
 		call _push_value( Value#_Int3[ value ] )
             elseif Value#_Int[value] == Jass#_boolexpr then
                 call _handle_boolexpr( value )

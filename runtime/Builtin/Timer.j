@@ -1,4 +1,4 @@
-// scope Builtin/Timer
+// scope Builtin::Timer
 // REQUIRES Print Value Table Jass Natives Call
 
 globals

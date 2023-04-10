@@ -1,4 +1,4 @@
-// scope Builtin/Coroutine
+// scope Builtin::Coroutine
 // REQUIRES Print Table Context Value List StringTable
 
 globals

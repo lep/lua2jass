@@ -1,4 +1,4 @@
-// scope Builtin/Table
+// scope Builtin::Table
 // REQUIRES Print Value Context Call
 
 globals

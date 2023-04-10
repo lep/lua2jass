@@ -1,4 +1,4 @@
-RUNTIME := runtime/Ins.j runtime/Interpreter.j runtime/Table.j runtime/Value.j  
+RUNTIME := runtime/Ins.j runtime/Interpreter.j runtime/Table.j runtime/Value.j
 RUNTIME += runtime/Context.j runtime/StringTable.j runtime/List.j runtime/Print.j
 RUNTIME += runtime/Types.j runtime/Builtins.j runtime/Wrap.j runtime/Call.j
 RUNTIME += runtime/GC.j runtime/Deque.j runtime/Helper.j
@@ -16,6 +16,9 @@ OUT	:= $(patsubst runtime/%, out/%, $(RUNTIME))
 OUT	+= $(patsubst auto/%, out/%, $(AUTO))
 
 .PHONY: check clean
+
+print-jorder:
+	@echo $$(./jorder.sh $(RUNTIME) $(AUTO)) scaffold.j main.j
 
 runtime.dot: $(RUNTIME) $(AUTO)
 	bash jdigraph.sh $(RUNTIME) $(AUTO) > "$@"

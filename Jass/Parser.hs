@@ -18,7 +18,7 @@ import Control.Monad
 import Data.Maybe
 import Data.Void
 
-import Jass.Ast
+import Jass.Ast hiding (concat)
 
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -82,7 +82,7 @@ reserved w = (lexeme . try) (string w *> notFollowedBy (char '_' <|> alphaNumCha
 identifier :: Parser String
 identifier = (lexeme . try) (p >>= check)
   where
-    p = (:) <$> letterChar <*> many (alphaNumChar <|> char '_')
+    p = (:) <$> (letterChar <|> char '_') <*> many (alphaNumChar <|> oneOf "#_:")
     check x = if x `elem` keywords
             then fail $ "keyword " ++ show x ++ " cannot be an identifier"
             else return x

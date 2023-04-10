@@ -1,4 +1,4 @@
-// scope Builtin/Trigger
+// scope Builtin::Trigger
 // REQUIRES Print Value Table Jass List Call
 
 globals
