@@ -43,7 +43,6 @@
 		    name = "lua2jass";
 		    src = self;
 		    buildPhase = ''
-			ls runtime
 			${ghcPackages}/bin/ghc -O Main.hs -o lua2jass
 		    '';
 
@@ -72,6 +71,7 @@
 		    buildInputs = [
 			pythonPackages
                         ghcPackages
+			pkgs.cabal-install
 			pkgs.lua5_3_compat
 			pkgs.jq
 			pkgs.shellcheck

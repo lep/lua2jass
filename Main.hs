@@ -54,6 +54,7 @@ tsort r = reverse . fst . foldl' (visit Set.empty) ([], Set.empty) $ map fst r
             (xs, g) = foldl' (visit temp') acc deps
         in (x:xs, Set.insert x g)
 
+extraFunctions :: Map String String
 extraFunctions = Map.fromList 
     [ ("$coroutine.create", "Builtin::Coroutine#_create")
     , ("$coroutine.yield", "Builtin::Coroutine#_yield")
@@ -147,6 +148,7 @@ runtime =
   , $(embedStringFile "runtime/Ins.j")
   , $(embedStringFile "runtime/Interpreter.j")
   , $(embedStringFile "runtime/List.j")
+  , $(embedStringFile "runtime/Main.j")
   , $(embedStringFile "runtime/Print.j")
   , $(embedStringFile "runtime/StringTable.j")
   , $(embedStringFile "runtime/Table.j")
@@ -155,13 +157,15 @@ runtime =
   , $(embedStringFile "runtime/Wrap.j")
   ] -- todo "scaffold"
 
+processed :: [((String, Set String), Jass.Ast String Jass.Programm)]
 processed = map justProcess runtime
 
+justProcess :: String -> ((String, Set String), Jass.Ast String Jass.Programm)
 justProcess = fromRight (error "justProcess") . CPre.process "lua_"
-
 
 parseFromFile p file = runParser p file . (++"\n") <$> readFile file
 
+handleCommonJ :: String -> IO [((String, Set String), Jass.Ast String Jass.Programm)]
 handleCommonJ path = do
     r <- parseFromFile Jass.programm path
     case r of
@@ -174,11 +178,13 @@ handleCommonJ path = do
                 asts' = map (\((scope, deps), ast) -> ((scope, deps), CPre.rename "lua_" scope ast)) asts
             in pure asts'
 
+mergeScripts :: [((String, Set String), Jass.Ast String Jass.Programm)] -> Jass.Ast String Jass.Programm
 mergeScripts xs =
     let m = Map.fromList $ map (\((scope, _), ast) -> (scope, ast)) xs
         sorted = tsort $ map (\((scope, deps), _) -> (scope, deps)) xs
     in foldl' (\ast k -> Jass.concat ast $ Map.findWithDefault (error k) k m) (Jass.Programm []) sorted
 
+openAndCompileLua :: FilePath -> IO ((String, Set String), Jass.Ast String Jass.Programm)
 openAndCompileLua path = do
     r <- Lua.parseNamedText Lua.chunk path <$> Text.readFile path
     case r of
@@ -196,6 +202,7 @@ options = (,,) <$> argument str (metavar "common.j" <> help "Path to common.j")
                <*> argument str (metavar "war3map.lua" <> help "Path to your lua script")
                <*> argument str (metavar "war3map.j" <> showDefault <> value "war3map.j" <> help "Path to the output")
 
+main :: IO ()
 main = do
     (commonj, war3map_lua, war3map_j) <- execParser opts
     auto1 <- handleCommonJ commonj

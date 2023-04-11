@@ -11,7 +11,7 @@ common warnings
     ghc-options: -Wall
 
 executable lua2jass
-    import:           warnings
+    import:           
     main-is:          Main.hs
     default-language: Haskell2010
 

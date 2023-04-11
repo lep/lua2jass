@@ -1036,6 +1036,3 @@ function _sweep takes nothing returns nothing
 	set i = i +1
     endloop
 endfunction
-
-function _init takes nothing returns nothing
-endfunction
