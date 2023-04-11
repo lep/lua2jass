@@ -998,8 +998,7 @@ function _step takes integer interpreter returns boolean
 endfunction
 
 
-function _debug_start_main takes nothing returns nothing
-    local integer interpreter = _alloc()
+function _initialize takes integer interpreter returns nothing
     local integer ctx = Context#_new()
 
     set _GlobalInterpreter = interpreter
@@ -1012,23 +1011,26 @@ function _debug_start_main takes nothing returns nothing
     set Context#_ret_behaviour[ctx] = _StopInterpreter
     set Context#_type[ctx] = Context#_Function
 
-
-
     set _stack_top[interpreter] = List#_cons(0)
     set _ctx[_stack_top[interpreter]] = ctx
-
-    call Print#_print("_debug_start_main initial context: "+I2S(ctx))
 
     call Dispatch#_register(ctx)
     call Builtin::Coroutine#_register(ctx)
     call Builtin::Math#_register(ctx)
     call Builtin::Table#_register(ctx)
+endfunction
 
+function _run_interpreter takes nothing returns nothing
+    local integer interpreter = _GlobalInterpreter
     loop
 	exitwhen not _step(interpreter)
     endloop
-    call Print#_print("reached end of loop")
+endfunction
 
+function _start_main takes nothing returns nothing
+    set _GlobalInterpreter = _alloc()
+    call _initialize(_GlobalInterpreter)
+    call TimerStart(CreateTimer(), 0, false, function _run_interpreter)
 endfunction
 
 function _call_function takes integer fn, integer params, integer interpreter returns nothing
@@ -1039,13 +1041,6 @@ function _call_function takes integer fn, integer params, integer interpreter re
     set Context#_type[ctx] = Context#_Function
     set Context#_ret_behaviour[ctx] = _StopInterpreter
 
-    //call Print#_print("_call_function")
-    ////call Print#_print("  - previous stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
-    //call Print#_print("  - new stack top ctx: "+I2S(ctx))
-    //call Print#_print("  - chunk name: "+ Value#_String[fn])
-    //call Print#_print("  - ret table: "+I2S(ret_table))
-    //call Print#_print("  - ret table _Int id: "+I2S(Value#_Int[ret_table]))
-
     // stack.push(ctx)
     set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
     set _ctx[_stack_top[interpreter]] = ctx
@@ -1053,11 +1048,6 @@ function _call_function takes integer fn, integer params, integer interpreter re
     loop
 	exitwhen not _step(interpreter)
     endloop
-    //set tmp = Table#_get( Value#_Int[ret_table], 1 )
-    //call Print#_print("  - _Int[ret_table][1]: "+I2S(tmp))
-    //call Print#_print("  - type thereof: "+I2S(Value#_Type[tmp]))
-    //call Print#_print("  - current stack top ctx: "+I2S(_ctx[_stack_top[interpreter]]))
-    //call Print#_print("  - returning")
 endfunction
 
 function _call_function_wrap takes nothing returns boolean

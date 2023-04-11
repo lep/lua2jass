@@ -4,20 +4,18 @@ version:            0.1.0.0
 license:            AGPL-3.0-only
 license-file:       LICENSE
 author:             lep
+maintainer:         lep.delete@googlemail.com
 category:           Language
 build-type:         Simple
 
-common warnings
-    ghc-options: -Wall
-
 executable lua2jass
-    import:           
     main-is:          Main.hs
     default-language: Haskell2010
 
     build-depends: base ^>=4.16.4.0, mtl, containers, binary, hashable,
                     parser-combinators, megaparsec, bytestring, file-embed,
-                    filepath, language-lua, text, optparse-applicative, alex-tools
+                    filepath, language-lua, text, optparse-applicative,
+                    alex-tools, template-haskell
 
     other-modules: Compiler.Bytecode, Compiler.Lua, Compiler.Natives,
                     Compiler.Preprocess, Data.Composeable, Data.MonoidMap,

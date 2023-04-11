@@ -7,7 +7,7 @@ globals
 endglobals
 
 function _start_main_interpreter takes nothing returns nothing
-    call Interpreter#_debug_start_main()
+    call Interpreter#_start_main()
 endfunction
 
 function _init takes nothing returns nothing
