@@ -10,7 +10,14 @@ globals
     // for GC (and other) purposes
     integer array _key
     integer array _val
+
+    boolean array _mark
 endglobals
+
+function _destroy takes integer tbl returns nothing
+    set _head[tbl] = 0
+    call _free(tbl)
+endfunction
 
 function _set takes integer tbl, integer reg, integer val returns nothing
     local integer ls = LoadInteger(_tbl, tbl, reg)
@@ -96,4 +103,19 @@ function _len takes integer tbl returns integer
 	endif
     endloop
     return 0
+endfunction
+
+function _mark_used takes integer tbl returns nothing
+    set _mark[tbl] = GC#_inqueue_flag
+endfunction
+
+function _sweep takes nothing returns nothing
+    local integer i = 1
+    loop
+    exitwhen i >= _I
+	if _V[i] == -1 and _mark[i] != GC#_inqueue_flag then
+	    call _destroy(i)
+	endif
+	set i = i +1
+    endloop
 endfunction

@@ -102,8 +102,11 @@ process globalPrefix prog = do
     pure ((scope, Set.delete "Alloc" requirements), ast'')
   where
     addAlloc ast scope requirements
-        | "Alloc" `Set.member` requirements = Jass.concat (alloc globalPrefix scope) ast
+        | "Alloc" `Set.member` requirements = Jass.concat (name_global scope) $ Jass.concat (alloc globalPrefix scope) ast
         | otherwise = ast
+
+    name_global scope = rename globalPrefix scope $ Jass.Programm [ Jass.Global $ Jass.SDef Jass.Const "_alloc_name" "string" $ Just $ Jass.String scope ]
+
 
 
 allocFile :: String

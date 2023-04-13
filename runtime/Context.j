@@ -37,6 +37,17 @@ function _new takes nothing returns integer
     return _alloc()
 endfunction
 
+function _destroy takes integer ctx returns nothing
+    set _locals[ctx] = 0
+    set _tmps[ctx] = 0
+    set _parent[ctx] = 0
+    set _ret_behaviour[ctx] = 0
+    set _chunk_name[ctx] = ""
+    set _type[ctx] = 0
+    set _ip[ctx] = 0
+    call _free(ctx)
+endfunction
+
 function _initialize takes integer ctx returns nothing
     set _locals[ctx] = Table#_alloc() // StringTable
     set _tmps[ctx] = Table#_alloc()
@@ -96,7 +107,7 @@ function _sweep takes nothing returns nothing
     loop
     exitwhen i >= _I
 	if _V[i] == -1 and _mark[i] != GC#_inqueue_flag then
-	    call _free(i)
+	    call _destroy(i)
 	endif
 	set i = i +1
     endloop

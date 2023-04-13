@@ -37,7 +37,42 @@ function _FourCC takes integer tbl, integer ctx, integer interpreter returns not
 endfunction
 
 function _collectgarbage takes integer tbl, integer ctx, integer interpreter returns nothing
-    call GC#_full_mark_and_sweep()
+    local integer r = Table#_get(tbl, 0)
+    local integer a = Table#_get(tbl, 1)
+    local string s
+    if a != 0 then
+	if Value#_String[a] == "count" then
+	    call Table#_set( Value#_Int[r], 1, Value#_litint( Value#_stats_live + Context#_stats_live + Table#_stats_live + List#_stats_live ))
+	elseif Value#_String[a] == "collect" then
+	    call GC#_full_mark_and_sweep()
+	elseif Value#_String[a] == "lep:stats" then
+	    set s = "Value high: "+I2S(Value#_stats_high)+"\n"
+	    set s = s + "Value live: "+I2S(Value#_stats_live)+"\n"
+	    set s = s + "Value count_alloc: "+I2S(Value#_stats_count_alloc)+"\n"
+	    set s = s + "Value count_free: "+I2S(Value#_stats_count_free)+"\n"
+
+	    set s = s + "Context high: "+I2S(Context#_stats_high)+"\n"
+	    set s = s + "Context live: "+I2S(Context#_stats_live)+"\n"
+	    set s = s + "Context count_alloc: "+I2S(Context#_stats_count_alloc)+"\n"
+	    set s = s + "Context count_free: "+I2S(Context#_stats_count_free)+"\n"
+
+	    set s = s + "Table high: "+I2S(Table#_stats_high)+"\n"
+	    set s = s + "Table live: "+I2S(Table#_stats_live)+"\n"
+	    set s = s + "Table count_alloc: "+I2S(Table#_stats_count_alloc)+"\n"
+	    set s = s + "Table count_free: "+I2S(Table#_stats_count_free)+"\n"
+
+	    set s = s + "List high: "+I2S(List#_stats_high)+"\n"
+	    set s = s + "List live: "+I2S(List#_stats_live)+"\n"
+	    set s = s + "List count_alloc: "+I2S(List#_stats_count_alloc)+"\n"
+	    set s = s + "List count_free: "+I2S(List#_stats_count_free)+"\n"
+
+	    //call Table#_set( Value#_Int[r], 1, Value#_litstring(s))
+	    call Print#_print(s)
+
+	endif
+    else
+	call GC#_full_mark_and_sweep()
+    endif
 endfunction
 
 function _rawset takes integer ptbl, integer ctx, integer interpreter returns nothing

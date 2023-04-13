@@ -246,8 +246,6 @@ function _move takes integer tbl, integer ctx, integer interpreter returns nothi
     endloop
 
     call Table#_set( Value#_Int[r], 1, a2 )
-
-    call Table#_free(tmp)
 endfunction
 
 function _remove takes integer tbl, integer ctx, integer interpreter returns nothing 

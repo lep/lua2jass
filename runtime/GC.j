@@ -21,6 +21,11 @@ globals
     string _Debug = ""
 endglobals
 
+function _next takes integer ls returns integer
+    call List#_mark_used(ls)
+    return List#_next[ls]
+endfunction
+
 function _push_context takes integer ctx returns nothing
     if ctx <= 0 then
 	call Print#_warn("_push_context: 0")
@@ -61,7 +66,21 @@ function _work_iqueue takes nothing returns nothing
     loop
     exitwhen ls == 0
 	call _push_context( Interpreter#_ctx[ls] )
-	set ls = List#_next[ls]
+	set ls = _next(ls)
+    endloop
+
+    call Table#_mark_used( Builtin::Trigger#_trigger2value  )
+    set ls = Table#_head[ Builtin::Trigger#_trigger2value ]
+    loop
+    exitwhen ls == 0
+	set ls = _next(ls)
+    endloop
+
+    call Table#_mark_used( Builtin::Timer#_timer2value  )
+    set ls = Table#_head[ Builtin::Timer#_timer2value ]
+    loop
+    exitwhen ls == 0
+	set ls = _next(ls)
     endloop
 
 
@@ -79,6 +98,7 @@ function _work_iqueue takes nothing returns nothing
 	set i = i - 1
     endloop
 endfunction
+
 
 function _handle_boolexpr takes integer value returns nothing
     local integer ty = Value#_Int3[value]
@@ -99,6 +119,7 @@ endfunction
 
 function _handle_coroutine takes integer co returns nothing
     local integer ls = Table#_head[ Builtin::Coroutine#_return_yield[co] ]
+    call Table#_mark_used( Builtin::Coroutine#_return_yield[co] )
 
     if Builtin::Coroutine#_return_resume[co] != 0 then
 	call _push_value( Builtin::Coroutine#_return_resume[co] )
@@ -108,9 +129,45 @@ function _handle_coroutine takes integer co returns nothing
     loop
     exitwhen ls == 0
 	call _push_context( Interpreter#_ctx[ls] )
+	call List#_mark_used(ls) // meh
 	exitwhen ls == Builtin::Coroutine#_base_frame[co]
-	set ls = List#_next[ls]
+	set ls = _next(ls)
     endloop
+endfunction
+
+function _handle_table takes integer value returns nothing
+    local integer ls = Table#_head[ Value#_Int[value] ]
+    local integer ls2
+
+    call Table#_mark_used(Value#_Int[value] )
+    call Table#_mark_used(Value#_Int2[value] )
+    if Value#_Int3[value] != 0 then
+	call Table#_mark_used(Value#_Int3[value] )
+    endif
+
+    loop
+    exitwhen ls == 0
+	//set _Debug = "_work_vqueue 1"
+	call _push_value( Table#_val[ls])
+	set ls = _next(ls)
+    endloop
+
+    set ls = Table#_head[ Value#_Int2[value] ]
+    loop
+    exitwhen ls == 0
+	set ls2 = Table#_val[ls]
+	loop
+	exitwhen ls2 == 0
+	    call _push_value( Value#_key[ls2] )
+	    call _push_value( Value#_val[ls2] )
+	    set ls2 = _next(ls2)
+	endloop
+	set ls = _next(ls)
+    endloop
+
+    if Value#_Int3[value] != 0 then
+	call _push_value( Value#_Int3[value] )
+    endif
 endfunction
 
 function _work_vqueue takes nothing returns nothing
@@ -137,33 +194,7 @@ function _work_vqueue takes nothing returns nothing
 	//set bla =  "_work_vqueue table "+Value#_tostring_debug(value)
 
 	if ty == Types#_Table then
-
-	    set ls2 = Table#_head[ Value#_Int[value] ]
-	    loop
-	    exitwhen ls2 == 0
-		//set _Debug = "_work_vqueue 1"
-		call _push_value( Table#_val[ls2])
-		set ls2 = List#_next[ls2]
-	    endloop
-
-            set ls2 = Table#_head[ Value#_Int2[value] ]
-            loop
-            exitwhen ls2 == 0
-                set ls3 = Table#_val[ls2]
-                loop
-                exitwhen ls3 == 0
-		    //set _Debug = "_work_vqueue 2"
-                    call _push_value( Value#_key[ls3] )
-		    //set _Debug = "_work_vqueue 3 key is: " + Value#_tostring_debug(Value#_key[ls3])
-                    call _push_value( Value#_val[ls3] )
-                    set ls3 = List#_next[ls3]
-                endloop
-                set ls2 = List#_next[ls2]
-            endloop
-
-	    if Value#_Int3[value] != 0 then
-		call _push_value( Value#_Int3[value] )
-	    endif
+	    call _handle_table(value)
 
 	elseif ty == Types#_Lambda then
 	    call _push_context( Value#_Int[value] )
@@ -177,7 +208,7 @@ function _work_vqueue takes nothing returns nothing
 		exitwhen ls2 == 0
 		    //set _Debug = "_work_vqueue 4"
 		    call _push_value( Builtin::Trigger#_trigger_action[ls2] )
-		    set ls2 = List#_next[ls2]
+		    set ls2 = _next(ls2)
 		endloop
 	    elseif Value#_Int[value] == Jass#_triggeraction then
 		//set _Debug = "_work_vqueue 5"
@@ -198,7 +229,6 @@ function _work_cqueue takes nothing returns nothing
     local integer ls
     local integer ctx
     local integer j
-    local integer value
     local integer ls2
     local integer val2
     local integer ls3
@@ -211,15 +241,17 @@ function _work_cqueue takes nothing returns nothing
 
 	call Context#_mark_used( ctx )
 
+	call Table#_mark_used( Context#_tmps[ctx] )
 	// walk tmps
 	set ls2 = Table#_head[ Context#_tmps[ctx] ]
 	loop
 	exitwhen ls2 == 0
 	    call _push_value( Table#_val[ls2] )
-	    set ls2 = List#_next[ls2]
+	    set ls2 = _next(ls2)
 	endloop
 
 
+	call Table#_mark_used( Context#_locals[ctx] )
 	// walk locals
 	set ls2 = Table#_head[ Context#_locals[ctx] ]
 	loop
@@ -228,9 +260,9 @@ function _work_cqueue takes nothing returns nothing
 	    loop
 	    exitwhen ls3 == 0
 		call _push_value( StringTable#_value[ls3] )
-		set ls3 = List#_next[ls3]
+		set ls3 = _next(ls3)
 	    endloop
-	    set ls2 = List#_next[ls2]
+	    set ls2 = _next(ls2)
 	endloop
 
 	// add parent contexts to GC workqueue
@@ -243,7 +275,6 @@ function _work_cqueue takes nothing returns nothing
 endfunction
 
 function _full_mark_and_sweep takes nothing returns nothing
-    //call Print#_print("_full_mark_and_sweep")
     loop
 	call _work_iqueue()
 	call _work_cqueue()
@@ -254,6 +285,9 @@ function _full_mark_and_sweep takes nothing returns nothing
 
     call Value#_sweep()
     call Context#_sweep()
+    call List#_sweep()
+    call Table#_sweep()
+
     set _inqueue_flag = not _inqueue_flag
 endfunction
 

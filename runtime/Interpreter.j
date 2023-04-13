@@ -13,6 +13,12 @@ globals
 
     // list _stack
     integer array _ctx
+
+
+    // DEBUG
+
+    integer _GlobalIp = 0
+    integer _GlobalIns = 0
 endglobals
 
 function _Not takes integer ctx, integer ip returns nothing
@@ -598,16 +604,10 @@ function _Leave takes integer ctx, integer interpreter returns nothing
     local integer head = _stack_top[interpreter]
     local integer old_ctx = _ctx[head]
     local integer new_old_ctx
-    //call Print#_print("Leave")
     // stack.pop()
     set _stack_top[interpreter] = List#_next[head]
     set new_old_ctx = _ctx[_stack_top[interpreter]]
     set Context#_ip[new_old_ctx] = Context#_ip[old_ctx]
-    call List#_free(head)
-    //call Context#_dealloc(ctx) // Can't do. Needs GC
-    //call Print#_print("  - "+I2S(ctx)+"("+I2S(old_ctx)+") --> "+I2S(new_old_ctx))
-
-    //call Context#_free(old_ctx) // this is done via GC?
 endfunction
 
 function _Call takes integer ctx, integer ip, integer interpreter returns nothing
@@ -627,15 +627,12 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
 
     if ty == Types#_Lambda then
 	set new_ctx = Context#_clone(Value#_Int[fn])
-	// TODO: this leaks new_ctx freshly allocated _tmps
 	set Context#_tmps[new_ctx] = Value#_Int[params] // this might need some refactoring
 	set Context#_type[new_ctx] = Context#_Function
-	//set Context#_parent_call[new_ctx] = ctx
 
 	// stack.push(new_ctx)
 	set _stack_top[interpreter] = List#_cons(_stack_top[interpreter])
 	set _ctx[_stack_top[interpreter]] = new_ctx
-	//call Print#_print("  - "+I2S(ctx)+" --> "+I2S(new_ctx))
     elseif ty == Types#_BuiltInFunction then
 	call Dispatch#_dispatch(Value#_Int[fn], Value#_Int[params], ctx, interpreter)
     elseif ty == Types#_Table then
@@ -651,7 +648,6 @@ function _Call takes integer ctx, integer ip, integer interpreter returns nothin
 		call Table#_set( metaparams, 1, fn )
 		call Table#_append( metaparams, Value#_Int[params], 1 )
 		set new_ctx = Context#_clone(Value#_Int[metamethod])
-		//set Context#_tmps[new_ctx] = Value#_Int[params] // this might need some refactoring
 		set Context#_tmps[new_ctx] = metaparams // this might need some refactoring
 		set Context#_type[new_ctx] = Context#_Function
 
@@ -785,7 +781,6 @@ function _Ret takes integer ctx, integer interpreter returns boolean
 	    call Table#_set( tmp_table, 1, Value#_litbool(true) )
 	    call Table#_getlist( Value#_Int[base_context_returntable_value], tmp_table, 1 )
 
-
 	    set Builtin::Coroutine#_status[co_value] = Builtin::Coroutine#_StatusDead
 	endif
 
@@ -893,6 +888,9 @@ function _step takes integer interpreter returns boolean
     if Builtins#_trace then
 	call Print#_print("Executing instruction ("+I2S(ip)+") "+ Ins#_Name[ins]+" ctx("+I2S(ctx)+")")
     endif
+
+    set _GlobalIns = ins
+    set _GlobalIp = ip
 
     // TODO: binsearch
     if ins == Ins#_Not then

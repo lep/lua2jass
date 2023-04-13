@@ -7,7 +7,6 @@ globals
     real array    _Real
     string array  _String
     boolean array _Bool
-    integer array _Table
     integer array _Type
 
     integer array _Int2
@@ -31,15 +30,26 @@ globals
     boolean array _mark
 
     // hash random constants
-    constant integer _HASH_RANDOM_INT = GetRandomInt(1, 31337)
-    constant real _HASH_RANDOM_REAL = GetRandomReal(2, 10)
-    constant integer _HASH_RANDOM_BOOL = GetRandomInt(-100, 100)
-    constant integer _HASH_RANDOM_NIL = GetRandomInt(2342, 42069)
+    constant integer _HASH_RANDOM_INT = 1 // GetRandomInt(1, 31337)
+    constant real _HASH_RANDOM_REAL = 2 // GetRandomReal(2, 10)
+    constant integer _HASH_RANDOM_BOOL = 3 //GetRandomInt(-100, 100)
+    constant integer _HASH_RANDOM_NIL = 4 // GetRandomInt(2342, 42069)
 endglobals
 
 
 function _new takes nothing returns integer
     return _alloc()
+endfunction
+
+function _destroy takes integer v returns nothing
+    set _Int[v] = 0
+    set _Int2[v] = 0
+    set _Int3[v] = 0
+    set _Real[v] = 0
+    set _String[v] = ""
+    set _Bool[v] = false
+    set _Type[v] = 0
+    call _free(v)
 endfunction
 
 // @alloc
@@ -1031,7 +1041,7 @@ function _sweep takes nothing returns nothing
     loop
     exitwhen i >= _I
 	if _V[i] == -1 and _mark[i] != GC#_inqueue_flag then
-	    call _free(i)
+	    call _destroy(i)
 	endif
 	set i = i +1
     endloop

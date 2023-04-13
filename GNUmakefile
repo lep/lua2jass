@@ -15,6 +15,9 @@ RUNTIME += runtime/Builtin/Table.j
 check: war3map.j
 	pjass $$commonj Blizzard.j war3map.j
 
+clean:
+	rm -f war3map.j lua2jass.j
+
 lua2jass.j: test.lua $(RUNTIME)
 	runhaskell Main.hs -- $$commonj $< $@
 

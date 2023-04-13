@@ -30,9 +30,6 @@ function _create takes integer tbl, integer ctx, integer interpreter returns not
 
     local integer base_frame = List#_cons( 0 )
 
-    //call Print#_print("_co_create")
-    //call Print#_print("  - base ctx "+I2S(new_ctx))
-
     set Interpreter#_ctx[base_frame] = new_ctx
 
     set Context#_ret_behaviour[new_ctx] = Interpreter#_CoroutineYield
