@@ -463,3 +463,8 @@ function _tostring takes integer tbl, integer ctx, integer interpreter returns n
 
     call Table#_set( Value#_Int[r], 1, Value#_litstring(Value#_tostring(v, interpreter) ) )
 endfunction
+
+function _register takes integer ctx returns nothing
+    local integer lua_version = Value#_litstring("Lua (lep) 5.3")
+    call Context#_set( ctx, "_VERSION", lua_version )
+endfunction

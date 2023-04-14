@@ -1016,6 +1016,7 @@ function _initialize takes integer interpreter returns nothing
     call Builtin::Coroutine#_register(ctx)
     call Builtin::Math#_register(ctx)
     call Builtin::Table#_register(ctx)
+    call Builtins#_register(ctx)
 endfunction
 
 function _run_interpreter takes nothing returns nothing
