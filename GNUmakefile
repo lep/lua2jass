@@ -11,6 +11,7 @@ RUNTIME += runtime/Builtin/Table.j
 
 .PHONY: check clean
 .PHONY: start-wc3 update-wc3
+.PHONY: lua2jass.exe
 
 check: war3map.j
 	pjass $$commonj Blizzard.j war3map.j
@@ -30,4 +31,10 @@ start-wc3: war3map.j
 
 update-wc3: war3map.j
 	jhcr-update "$<"
+
+lua2jass.exe:
+	rm -f $@
+	cabal build --allow-newer lua2jass
+	strip $$(cabal list-bin --allow-newer lua2jass)
+	upx -qq $$(cabal list-bin --allow-newer lua2jass) -o $@
 
