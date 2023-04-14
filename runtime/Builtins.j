@@ -38,40 +38,62 @@ endfunction
 
 function _collectgarbage takes integer tbl, integer ctx, integer interpreter returns nothing
     local integer r = Table#_get(tbl, 0)
-    local integer a = Table#_get(tbl, 1)
-    local string s
-    if a != 0 then
-	if Value#_String[a] == "count" then
+    local integer opt = Table#_get(tbl, 1)
+    local integer arg = Table#_get(tbl, 2)
+    local integer stats
+
+    if opt != 0 then
+	if Value#_String[opt] == "count" then
 	    call Table#_set( Value#_Int[r], 1, Value#_litint( Value#_stats_live + Context#_stats_live + Table#_stats_live + List#_stats_live ))
-	elseif Value#_String[a] == "collect" then
+	elseif Value#_String[opt] == "collect" then
 	    call GC#_full_mark_and_sweep()
-	elseif Value#_String[a] == "lep:stats" then
-	    set s = "Value high: "+I2S(Value#_stats_high)+"\n"
-	    set s = s + "Value live: "+I2S(Value#_stats_live)+"\n"
-	    set s = s + "Value count_alloc: "+I2S(Value#_stats_count_alloc)+"\n"
-	    set s = s + "Value count_free: "+I2S(Value#_stats_count_free)+"\n"
+	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	elseif Value#_String[opt] == "stop" then
+	    set GC#_enabled = false
+	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	elseif Value#_String[opt] == "restart" then
+	    set GC#_enabled = true
+	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	elseif Value#_String[opt] == "step" then
+	    call Print#_warn("collectgarbage('step') is not supported")
+	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	elseif Value#_String[opt] == "setstepmul" then
+	    call Print#_warn("collectgarbage('setstepmul') is not supported")
+	    call Table#_set( Value#_Int[r], 1, Value#_litnil() )
+	elseif Value#_String[opt] == "setpause" then
+	    call Table#_set( Value#_Int[r], 1, Value#_litfloat( GC#_timeout ) )
+	    set GC#_timeout = Value#_2real( Value#_numbercontext(arg), interpreter )
+	elseif Value#_String[opt] == "isrunning" then
+	    call Table#_set( Value#_Int[r], 1, Value#_litbool( GC#_enabled ) )
+	elseif Value#_String[opt] == "lep:stats" then
+	    set stats = Value#_table()
 
-	    set s = s + "Context high: "+I2S(Context#_stats_high)+"\n"
-	    set s = s + "Context live: "+I2S(Context#_stats_live)+"\n"
-	    set s = s + "Context count_alloc: "+I2S(Context#_stats_count_alloc)+"\n"
-	    set s = s + "Context count_free: "+I2S(Context#_stats_count_free)+"\n"
+	    call Value#_settable( stats, Value#_litstring("value-high"), Value#_litint(Value#_stats_high))
+	    call Value#_settable( stats, Value#_litstring("value-live"), Value#_litint(Value#_stats_live))
+	    call Value#_settable( stats, Value#_litstring("value-count-alloc"), Value#_litint(Value#_stats_count_alloc))
+	    call Value#_settable( stats, Value#_litstring("value-count-free"), Value#_litint(Value#_stats_count_free))
+	    
+	    call Value#_settable( stats, Value#_litstring("context-high"), Value#_litint(Context#_stats_high))
+	    call Value#_settable( stats, Value#_litstring("context-live"), Value#_litint(Context#_stats_live))
+	    call Value#_settable( stats, Value#_litstring("context-count-alloc"), Value#_litint(Context#_stats_count_alloc))
+	    call Value#_settable( stats, Value#_litstring("context-count-free"), Value#_litint(Context#_stats_count_free))
 
-	    set s = s + "Table high: "+I2S(Table#_stats_high)+"\n"
-	    set s = s + "Table live: "+I2S(Table#_stats_live)+"\n"
-	    set s = s + "Table count_alloc: "+I2S(Table#_stats_count_alloc)+"\n"
-	    set s = s + "Table count_free: "+I2S(Table#_stats_count_free)+"\n"
+	    call Value#_settable( stats, Value#_litstring("table-high"), Value#_litint(Table#_stats_high))
+	    call Value#_settable( stats, Value#_litstring("table-live"), Value#_litint(Table#_stats_live))
+	    call Value#_settable( stats, Value#_litstring("table-count-alloc"), Value#_litint(Table#_stats_count_alloc))
+	    call Value#_settable( stats, Value#_litstring("table-count-free"), Value#_litint(Table#_stats_count_free))
 
-	    set s = s + "List high: "+I2S(List#_stats_high)+"\n"
-	    set s = s + "List live: "+I2S(List#_stats_live)+"\n"
-	    set s = s + "List count_alloc: "+I2S(List#_stats_count_alloc)+"\n"
-	    set s = s + "List count_free: "+I2S(List#_stats_count_free)+"\n"
+	    call Value#_settable( stats, Value#_litstring("list-high"), Value#_litint(List#_stats_high))
+	    call Value#_settable( stats, Value#_litstring("list-live"), Value#_litint(List#_stats_live))
+	    call Value#_settable( stats, Value#_litstring("list-count-alloc"), Value#_litint(List#_stats_count_alloc))
+	    call Value#_settable( stats, Value#_litstring("list-count-free"), Value#_litint(List#_stats_count_free))
 
-	    //call Table#_set( Value#_Int[r], 1, Value#_litstring(s))
-	    call Print#_print(s)
+	    call Table#_set( Value#_Int[r], 1, stats )
 
 	endif
     else
 	call GC#_full_mark_and_sweep()
+	call Table#_set( Value#_Int[r], 1, Value#_litnil() )
     endif
 endfunction
 

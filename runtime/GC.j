@@ -5,6 +5,9 @@ globals
     constant integer VALUE_MAX_STEPS = 1000
     constant integer CONTEXT_MAX_STEPS = 1000
 
+    real _timeout = 5.0
+    boolean _enabled = true
+
     boolean _inqueue_flag = true
     integer _interpreter_queue
     integer array _interpreter
@@ -291,10 +294,19 @@ function _full_mark_and_sweep takes nothing returns nothing
     set _inqueue_flag = not _inqueue_flag
 endfunction
 
+function _trigger_gc takes nothing returns nothing
+    local timer t = GetExpiredTimer()
+    if _enabled then
+	call _full_mark_and_sweep()
+    endif
+    call TimerStart(t, _timeout, false, function _trigger_gc)
+    set t = null
+endfunction
+
 function _init takes nothing returns nothing
     set _interpreter_queue = Deque#_alloc()
     set _context_queue = Deque#_alloc()
     set _value_queue = Deque#_alloc()
 
-    call TimerStart(CreateTimer(), 5, true, function _full_mark_and_sweep )
+    call TimerStart(CreateTimer(), _timeout, false, function _trigger_gc )
 endfunction
