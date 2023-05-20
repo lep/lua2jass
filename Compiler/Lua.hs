@@ -6,6 +6,7 @@ module Compiler.Lua where
 import qualified Jass.Ast as Jass
 
 import Prelude hiding (head, LT, GT, EQ)
+import qualified Prelude
 
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -36,12 +37,14 @@ import System.IO
 import Options.Applicative
 
 type Asm = [Bytecode]
-type S = (Int, Map Text Asm)
+type S = (Int, Map Text Asm, [B.Label])
 
 type CompileM = StateT S (Writer Asm)
 
 runCompiler :: CompileM a -> Map Text Asm
-runCompiler = snd . fst . runWriter . flip execStateT (0, Map.empty)
+runCompiler c = --snd . fst . runWriter . flip execStateT (0, Map.empty, [])
+    let (cnt, asm, l) = fst . runWriter $ execStateT c (0, Map.empty, [])
+    in asm
 
 runCompiler' :: S -> CompileM a -> (S, Asm, a)
 runCompiler' initialState m = 
@@ -57,13 +60,34 @@ emit = tell . pure
 -- wise to check this out again and make it grow towars positive infinity
 -- instead
 fresh :: CompileM Int
-fresh = modify (first pred) >> gets fst
+fresh = do
+    (cnt, m, l) <- get
+    let cnt' = pred cnt
+    put (cnt', m, l)
+    pure cnt'
+    --modify (first pred) >> gets fst
+
+pushBreakLabel :: B.Label -> CompileM ()
+pushBreakLabel lbl = do
+    (cnt, m, l) <- get
+    let l' = lbl:l
+    put (cnt, m, l')
+
+popBreakLabel :: CompileM ()
+popBreakLabel = do
+    (cnt, m, l) <- get
+    put (cnt, m, tail l)
+
+getCurrentBreakLabel :: CompileM B.Label
+getCurrentBreakLabel = do
+    (_, _, l) <- get
+    pure $ Prelude.head l
 
 addFunction :: Text -> Asm -> CompileM ()
 addFunction fn asm = do
-    (s, m) <- get
+    (s, m, l) <- get
     let m' = Map.insert fn asm m
-    put (s, m')
+    put (s, m', l)
 
 local :: CompileM a -> CompileM (a, Asm)
 local x = do
@@ -234,30 +258,33 @@ compileStat = \case
         emit B.Leave
 
     Repeat block expr -> do
-        lbl_start <- fresh
-        reg_transfer <- fresh
-        let local_name = "$" <> Text.pack (show reg_transfer)
-        emit $ B.Local local_name
 
-        emit $ B.Label lbl_start
+        lbl_while_start <- fresh
+        lbl_break <- fresh
+
+        pushBreakLabel lbl_break
+
+        emit $ B.Label lbl_while_start
         emit B.Enter
 
         compileBlock' False block
 
         reg_cond <- compileExp compilePrefixExp' expr
-        reg_tmp1 <- fresh
-        emit $ B.Not reg_tmp1 reg_cond
-        emit $ B.SetLit local_name reg_tmp1
+
+        emit $ B.JumpT lbl_break reg_cond
         emit B.Leave
-        
-        reg_tmp2 <- fresh
-        emit $ B.GetLit reg_tmp2 local_name
-        emit $ B.JumpT lbl_start reg_tmp2
-        
+        emit $ B.Jump lbl_while_start
+
+        emit $ B.Label lbl_break
+        emit B.Leave
+
+        popBreakLabel
 
     While cond block -> do
         lbl_start <- fresh
         lbl_end <- fresh
+        lbl_break <- fresh
+        pushBreakLabel lbl_break
 
         emit $ B.Label lbl_start
         c <- compileExp compilePrefixExp' cond
@@ -270,65 +297,94 @@ compileStat = \case
         emit B.Leave
 
         emit $ B.Jump lbl_start
+
+        emit $ B.Label lbl_break
+        emit B.Leave
+
         emit $ B.Label lbl_end
+        popBreakLabel
 
     ForIn names@(Name var1:_) exps block -> do
         let varname_f = VarName $ Name "$f"
             varname_s = VarName $ Name "$s"
             varname_var = VarName $ Name "$var"
 
-        lbl_start <- fresh
-        lbl_end <- fresh
+        lbl_while_start <- fresh
+        lbl_break <- fresh
+        pushBreakLabel lbl_break
 
-
-
+        -- do
         emit B.Enter
-        reg_nil <- fresh
-        emit $ B.LitNil reg_nil
 
-        forM_ names $ \(Name name) ->
-            emit $ B.Local name
+        -- local f, s, var = exps
+        emit $ B.Local "$f"
+        emit $ B.Local "$s"
+        emit $ B.Local "$var"
+
 
         compileAssign [varname_f, varname_s, varname_var] exps
 
-        emit $ B.Label lbl_start
+        -- while true
+        emit $ B.Label lbl_while_start
+        emit B.Enter
+
+
+        -- local var_1, ..., var_n = f(s, var)
+        forM_ names $ \(Name name) ->
+            emit $ B.Local name
 
         compileAssign (map VarName names) [
             PrefixExp $ PEFunCall $ NormalFunCall (PEVar varname_f) $ Args [PrefixExp $ PEVar varname_s, PrefixExp $ PEVar varname_var]
             ]
+
+        -- if var_1 == nil then break end
+        reg_nil <- fresh
+        emit $ B.LitNil reg_nil
 
         reg_var1 <- fresh
         emit $ B.GetLit reg_var1 var1
 
         reg_cmp <- fresh
         emit $ B.EQ reg_cmp reg_var1 reg_nil
-        emit $ B.JumpT lbl_end reg_cmp
+        emit $ B.JumpT lbl_break reg_cmp
         emit $ B.SetLit "$var" reg_var1
 
-        emit B.Enter
+        -- <block>
         compileBlock' False block
+
+        -- end
+        emit B.Leave
+        emit $ B.Jump lbl_while_start
+
+        emit $ B.Label lbl_break
         emit B.Leave
 
-
-
-        emit $ B.Jump lbl_start
-        emit $ B.Label lbl_end
+        -- end
         emit B.Leave
-        
+
+        popBreakLabel
         
 
     ForRange (Name var) start end step block -> do
-        lbl_start <- fresh
-        lbl_end <- fresh
 
-        zero <- fresh
-        emit $ B.LitInt zero "0"
+        lbl_while_start <- fresh
+        lbl_break <- fresh
+
+        pushBreakLabel lbl_break
+
+        -- do
+        emit B.Enter
+
+        -- local var, limit, step = ...
+        emit $ B.Local "$var"
+        emit $ B.Local "$limit"
+        emit $ B.Local "$step"
 
         reg_start <- compileExp compilePrefixExp' start
-        emit $ B.Local var
-        emit $ B.SetLit var reg_start
+        --emit $ B.SetLit "$var" reg_start -- we set $var to $var - $step directly
 
-        reg_end <- compileExp compilePrefixExp' end
+        reg_limit <- compileExp compilePrefixExp' end
+        emit $ B.SetLit "$limit" reg_limit
 
         reg_step <- case step of
             Nothing -> do
@@ -336,41 +392,88 @@ compileStat = \case
                 emit $ B.LitInt one "1"
                 pure one
             Just e -> compileExp compilePrefixExp' e
+        emit $ B.SetLit "$step" reg_step
 
-        -- initial compare to see if we have to skip the loop alltogether
-        -- adapted from lvm.c:forlimit
-        -- original `step > 0 ? start > end : start < end`
-        -- becomes `(step < 0) != (start >= end)
-        x <- fresh
-        y <- fresh
-        skip_loop <- fresh
-        emit $ B.LT x reg_step zero
-        emit $ B.GTE y reg_start reg_end
-        emit $ B.NEQ skip_loop x y
-        emit $ B.JumpT lbl_end skip_loop
+        -- var = var - step
+        emit $ B.Sub reg_start reg_start reg_start
+        emit $ B.SetLit "$var" reg_start
 
-
-        -- loop body
-        emit $ B.Label lbl_start
+        -- while true
+        emit $ B.Label lbl_while_start
         emit B.Enter
-        compileBlock' False block
-        emit B.Leave
-    
 
-        -- equality check
+        -- var = var + step
         reg_var <- fresh
-        reg_tmp1 <- fresh
-        emit $ B.GetLit reg_var var
-        emit $ B.EQ reg_tmp1 reg_var reg_end
-        emit $ B.JumpT lbl_end reg_tmp1
+        reg_limit <- fresh
+        reg_step <- fresh
+        reg_t1 <- fresh
 
-        -- var += step
-        reg_tmp2 <- fresh
-        emit $ B.Add reg_tmp2 reg_var reg_step
-        emit $ B.SetLit var reg_tmp2
+        emit $ B.GetLit reg_t1 "$var"
+        emit $ B.GetLit reg_step "$step"
+        emit $ B.Add reg_var reg_t1 reg_step
+        emit $ B.SetLit "$var" reg_var
 
-        emit $ B.Jump lbl_start
-        emit $ B.Label lbl_end
+        emit $ B.GetLit reg_limit "$limit"
+
+        -- if (step >= 0 and var > limit) or (step < 0 and var < limit )
+        reg_zero <- fresh
+        emit $ B.LitInt reg_zero "0"
+        reg_step_gte_0 <- fresh
+        reg_step_lt_0 <- fresh
+        reg_var_gt_limit <- fresh
+        reg_var_lt_limit <- fresh
+        reg_and1 <- fresh
+        reg_and2 <- fresh
+
+        lbl_or1 <- fresh
+        lbl_or2 <- fresh
+        -- step >= 0, but invert it for the jump
+        emit $ B.LT reg_step_gte_0 reg_step reg_zero
+        -- var > limit, but invert it for the jump
+        emit $ B.LTE reg_var_gt_limit reg_var reg_limit
+
+        -- and
+        emit $ B.JumpT lbl_or1 reg_step_gte_0
+        emit $ B.JumpT lbl_or1 reg_var_gt_limit 
+        -- break
+        emit $ B.JumpT lbl_break reg_and1 
+
+        emit $ B.Label lbl_or1
+        -- step < 0, but invert it for the jump
+        emit $ B.Not reg_step_lt_0 reg_step_gte_0
+        -- var < limit, but invert for the jump
+        emit $ B.GTE reg_var_lt_limit reg_var reg_limit
+        -- and
+        emit $ B.JumpT lbl_or2 reg_step_lt_0 
+        emit $ B.JumpT lbl_or2 reg_var_lt_limit 
+
+        -- break
+        emit $ B.JumpT lbl_break reg_and1 
+
+
+        emit $ B.Label lbl_or2
+        --local v = var
+        emit $ B.Local var
+        emit $ B.SetLit var reg_var
+
+        -- <block>
+        compileBlock' False block
+
+
+        --end
+        emit B.Leave
+        emit $ B.Jump lbl_while_start
+
+
+        -- we're missing one leave here
+        emit $ B.Label lbl_break
+        emit B.Leave
+
+
+        -- end
+        emit B.Leave
+
+        popBreakLabel
 
     LocalFunAssign (Name name) funBody -> do
         x <- fresh
@@ -452,6 +555,11 @@ compileStat = \case
         
         traverse (compileElseBlock lbl_end) elseBlock
         emit $ B.Label lbl_end
+    Break -> do
+        lbl <- getCurrentBreakLabel
+        emit $ B.Jump lbl
+
+    x -> error $ unwords ["unhandled", show x ]
         
   where
     compileIfBlock lbl_end (cond, block) = do
