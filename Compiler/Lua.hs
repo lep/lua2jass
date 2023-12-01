@@ -17,6 +17,7 @@ import System.Environment
 
 import Control.Arrow
 
+import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.State
 
