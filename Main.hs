@@ -161,7 +161,7 @@ processed :: [((String, Set String), Jass.Ast String Jass.Programm)]
 processed = map justProcess runtime
 
 justProcess :: String -> ((String, Set String), Jass.Ast String Jass.Programm)
-justProcess = fromRight (error "justProcess") . CPre.process "lua_"
+justProcess = either (error . errorBundlePretty) id . CPre.process "lua_"
 
 parseFromFile p file = runParser p file . (++"\n") <$> readFile file
 

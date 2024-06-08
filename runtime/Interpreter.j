@@ -886,7 +886,7 @@ function _step takes integer interpreter returns boolean
     set Context#_ip[ctx] = Context#_ip[ctx] + 1
     
     if Builtins#_trace then
-	call Print#_print("Executing instruction ("+I2S(ip)+") "+ Ins#_Name[ins]+" ctx("+I2S(ctx)+")")
+        call Print#_print("Executing instruction ("+I2S(ip)+") "+Ins#_show(ip) )
     endif
 
     set _GlobalIns = ins

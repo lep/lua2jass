@@ -396,7 +396,7 @@ compileStat = \case
         emit $ B.SetLit "$step" reg_step
 
         -- var = var - step
-        emit $ B.Sub reg_start reg_start reg_start
+        emit $ B.Sub reg_start reg_start reg_step
         emit $ B.SetLit "$var" reg_start
 
         -- while true

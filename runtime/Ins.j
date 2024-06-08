@@ -114,3 +114,22 @@ function _init takes nothing returns nothing
     set _Name[_Lambda] = "Lambda"
     set _Name[_Local] = "Local"
 endfunction
+
+function _show takes integer ip returns string
+    local integer ins = _ins[ip]
+    local string s = _Name[ins] + " "
+
+    // ii
+    if ins == _Call or ins == _Set or (ins >=  _JumpT and ins <= _Complement) then
+        set s = s + I2S(_op1[ins]) +" "+I2S(_op2[ins])
+    elseif (ins >= _GTE and ins <= _BXor) or (ins >= _Append and ins <= _GetTable) then
+        set s = s + I2S(_op1[ins]) +" "+I2S(_op2[ins]) +" "+I2S(_op3[ins])
+    elseif ins == _SetLit then // si
+        set s = s + _string[ins] +" "+I2S(_op1[ins])
+    elseif ins == _GetLit or ins == _Lambda or ins == _LitString then // is
+        set s = s + _string[ins] +" "+I2S(_op1[ins])
+    else
+        set s = s + "<...>"
+    endif
+    return s
+endfunction
