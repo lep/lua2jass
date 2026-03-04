@@ -50,6 +50,7 @@ pName = do
   where
     ident = many $ alphaNumChar <|> char '_'
 
+pModule :: Parser String
 pModule = many (char ':' <|> char '_' <|> alphaNumChar )
 
 pMetadata = do
